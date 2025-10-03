@@ -1,0 +1,13 @@
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/LLVMObfuscatorTargets.cmake")
+
+# Find dependencies
+find_package(LLVM REQUIRED CONFIG)
+
+# Provide variables for consumers
+set(LLVMObfuscator_VERSION @PROJECT_VERSION@)
+set(LLVMObfuscator_INCLUDE_DIRS "@PACKAGE_CMAKE_INSTALL_INCLUDEDIR@")
+set(LLVMObfuscator_LIBRARIES LLVMObfuscator::ObfuscationPass)
+
+check_required_components(LLVMObfuscator)

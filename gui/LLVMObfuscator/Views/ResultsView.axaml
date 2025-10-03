@@ -1,0 +1,153 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:LLVMObfuscatorAvalonia.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="600"
+             x:Class="LLVMObfuscatorAvalonia.Views.ResultsView"
+             x:DataType="vm:ResultsViewModel">
+
+    <Design.DataContext>
+        <vm:ResultsViewModel />
+    </Design.DataContext>
+
+    <ScrollViewer>
+        <StackPanel Margin="30" Spacing="30">
+            
+            <!-- Title -->
+            <StackPanel Spacing="15" HorizontalAlignment="Center">
+                <TextBlock Text="Obfuscation Progress &amp; Results" 
+                           FontSize="32" FontWeight="Bold" 
+                           HorizontalAlignment="Center" />
+                <TextBlock Text="✨ Monitor the obfuscation process and view detailed results ✨" 
+                           FontSize="16" 
+                           HorizontalAlignment="Center"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+            </StackPanel>
+
+            <!-- Progress Section -->
+            <Border Classes="card" Padding="25" Margin="0,10,0,0">
+                <StackPanel Spacing="20">
+                    <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+                        <TextBlock Text="⚡" FontSize="20" />
+                        <TextBlock Text="Obfuscation Progress" FontSize="16" FontWeight="Bold" />
+                    </StackPanel>
+                    
+                    <!-- Animated Progress Bar -->
+                    <ProgressBar Value="{Binding ProgressValue}" 
+                                Maximum="100" 
+                                Height="35"
+                                Background="{DynamicResource SystemControlBackgroundBaseLowBrush}">
+                        <ProgressBar.Foreground>
+                            <SolidColorBrush Color="#4CAF50" />
+                        </ProgressBar.Foreground>
+                    </ProgressBar>
+                    
+                    <!-- Animated Percentage Text -->
+                    <TextBlock Text="{Binding ProgressValue, StringFormat='{}{0}% Complete'}" 
+                               FontSize="16" FontWeight="Bold"
+                               HorizontalAlignment="Center"
+                               Foreground="#2E7D32" />
+                    
+                    <!-- Animated Status Messages -->
+                    <StackPanel Spacing="10" HorizontalAlignment="Center">
+                        <TextBlock Text="{Binding ProgressText}" 
+                                   FontSize="15" FontWeight="SemiBold"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#1976D2" />
+                        
+                        <TextBlock Text="{Binding ProgressDetails}" 
+                                   FontSize="13"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                   TextWrapping="Wrap"
+                                   Opacity="0.8" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Results Section -->
+            <Border Classes="card" Padding="25" Margin="0,10,0,0">
+                <StackPanel Spacing="20">
+                    <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+                        <TextBlock Text="📈" FontSize="20" />
+                        <TextBlock Text="Obfuscation Results" FontSize="16" FontWeight="Bold" />
+                    </StackPanel>
+                    
+                    <ItemsControl ItemsSource="{Binding Results}" Margin="0,10,0,0">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="2" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Classes="card" Padding="20" Margin="5" 
+                                        Background="White">
+                                    <StackPanel Spacing="10">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="🔹" FontSize="16" />
+                                            <TextBlock Text="{Binding Metric}" 
+                                                       FontSize="13" FontWeight="SemiBold"
+                                                       Foreground="#1F2937" />
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Value}" 
+                                                   FontSize="18" FontWeight="Bold"
+                                                   Foreground="#1F2937" />
+                                        <TextBlock Text="{Binding Description}" 
+                                                   FontSize="11"
+                                                   Foreground="#6B7280"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <!-- Download Section -->
+            <Border Classes="card" Padding="25" Margin="0,10,0,0">
+                <StackPanel Spacing="20">
+                    <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+                        <TextBlock Text="" FontSize="20" />
+                        <TextBlock Text="Download Files" FontSize="16" FontWeight="Bold" />
+                    </StackPanel>
+                    
+                    <StackPanel Orientation="Horizontal" Spacing="20" HorizontalAlignment="Center">
+                        <Button Content="Download Output File" 
+                                Classes="success"
+                                Width="250" Height="60"
+                                FontSize="14" FontWeight="Bold"
+                                HorizontalContentAlignment="Center"
+                                Command="{Binding DownloadOutputCommand}"
+                                IsEnabled="{Binding IsObfuscationComplete}" />
+                        <Button Content="📄 Download Report" 
+                                Classes="primary"
+                                Width="250" Height="60"
+                                FontSize="14" FontWeight="Bold"
+                                HorizontalContentAlignment="Center"
+                                Command="{Binding DownloadReportCommand}"
+                                IsEnabled="{Binding IsObfuscationComplete}" />
+                    </StackPanel>
+                    
+                    <!-- Return to File Selection Button - SIMPLE VERSION -->
+                    <StackPanel Orientation="Horizontal" Spacing="20" HorizontalAlignment="Center" Margin="0,20,0,0">
+                        <Button Content="Select Another File" 
+                                Classes="primary"
+                                Width="300" Height="50"
+                                FontSize="14" FontWeight="Bold"
+                                HorizontalContentAlignment="Center"
+                                Click="ReturnToFileSelection_Click" />
+                    </StackPanel>
+                    
+                    <TextBlock Text="Download your obfuscated files and detailed reports" 
+                               FontSize="12"
+                               HorizontalAlignment="Center"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

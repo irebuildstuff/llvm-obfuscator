@@ -1,0 +1,111 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:LLVMObfuscatorAvalonia.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="600"
+             x:Class="LLVMObfuscatorAvalonia.Views.ConfigurationView"
+             x:DataType="vm:ConfigurationViewModel"
+             x:Name="ConfigView">
+
+    <Design.DataContext>
+        <vm:ConfigurationViewModel />
+    </Design.DataContext>
+
+    <ScrollViewer>
+        <StackPanel Margin="30" Spacing="30">
+            
+            <!-- Title -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="⚙️ Configure Obfuscation Settings" 
+                           FontSize="24" FontWeight="Bold" />
+                <TextBlock Text="Select presets and customize obfuscation techniques" 
+                           Classes="subtitle" />
+            </StackPanel>
+
+            <!-- Preset Selection Card -->
+            <Border Classes="card">
+                <StackPanel Spacing="15">
+                    <TextBlock Text="Quick Presets:" FontSize="16" FontWeight="Bold" />
+                    
+                    <ItemsControl ItemsSource="{Binding PresetOptions}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="4" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Classes="primary"
+                                        Width="120" Height="35"
+                                        FontSize="14"
+                                        FontWeight="SemiBold"
+                                        HorizontalContentAlignment="Center"
+                                        Foreground="White"
+                                        Margin="5"
+                                        Command="{Binding #ConfigView.((vm:ConfigurationViewModel)DataContext).ApplyPresetCommand}"
+                                        CommandParameter="{Binding}">
+                                    <Button.Content>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <TextBlock Text="" Foreground="White" />
+                                            <TextBlock Text="{Binding Name}" Foreground="White" />
+                                        </StackPanel>
+                                    </Button.Content>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <!-- Obfuscation Techniques Card -->
+            <Border Classes="card">
+                <StackPanel Spacing="15">
+                    <TextBlock Text="Obfuscation Techniques:" FontSize="16" FontWeight="Bold" />
+                    
+                    <ItemsControl ItemsSource="{Binding ObfuscationOptions}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="2" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsEnabled}"
+                                          FontSize="13"
+                                          Margin="0,10"
+                                          Foreground="#1F2937"
+                                          Background="Transparent">
+                                    <TextBlock Text="{Binding Name}"
+                                               Foreground="#1F2937"
+                                               FontSize="13" />
+                                </CheckBox>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <!-- Action Buttons -->
+            <StackPanel Orientation="Horizontal" Spacing="20" HorizontalAlignment="Center" Margin="0,20,0,0">
+                <Button Content="Start Obfuscation" 
+                        Classes="success"
+                        Width="280" Height="60"
+                        FontSize="15" FontWeight="Bold"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
+                        Command="{Binding StartObfuscationCommand}"
+                        IsEnabled="{Binding !IsObfuscationRunning}" />
+                <Button Content="Cancel" 
+                        Classes="danger"
+                        Width="180" Height="60"
+                        FontSize="14" FontWeight="Bold"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
+                        Command="{Binding CancelObfuscationCommand}"
+                        IsEnabled="{Binding IsObfuscationRunning}" />
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

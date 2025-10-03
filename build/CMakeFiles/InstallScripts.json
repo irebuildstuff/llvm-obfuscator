@@ -1,0 +1,9 @@
+{
+	"InstallScripts" : 
+	[
+		"C:/Users/Akash/Desktop/New folder (8)/build/cmake_install.cmake",
+		"C:/Users/Akash/Desktop/New folder (8)/build/examples/cmake_install.cmake",
+		"C:/Users/Akash/Desktop/New folder (8)/build/tests/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1E3A8A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E40AF;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="shieldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F97316;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#EA580C;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="8" cy="8" r="7.5" fill="url(#bgGradient)" stroke="#1E3A8A" stroke-width="0.5"/>
+  
+  <!-- Shield shape -->
+  <path d="M8 2.5 L11.25 4.375 L11.25 8.125 C11.25 9.375 10 10.625 8 11.875 C6 10.625 4.75 9.375 4.75 8.125 L4.75 4.375 Z" 
+        fill="url(#shieldGradient)" 
+        stroke="#EA580C" 
+        stroke-width="0.5"/>
+  
+  <!-- Security lock icon -->
+  <rect x="7.25" y="8" width="1.5" height="1.25" rx="0.25" fill="white" opacity="0.9"/>
+  <path d="M7.5 8 L7.5 7.5 C7.5 7.25 7.6 7 8 7 C8.4 7 8.5 7.25 8.5 7.5 L8.5 8" 
+        stroke="white" stroke-width="0.25" fill="none" opacity="0.9"/>
+</svg>

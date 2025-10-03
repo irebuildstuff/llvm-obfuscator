@@ -1,0 +1,10 @@
+^C:\USERS\AKASH\DESKTOP\NEW FOLDER (8)\BUILD\CMAKEFILES\F6114462751CF1C3609D1943125F10DF\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" "-SC:/Users/Akash/Desktop/New folder (8)" "-BC:/Users/Akash/Desktop/New folder (8)/build" --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file "C:/Users/Akash/Desktop/New folder (8)/build/LLVMObfuscator.sln"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

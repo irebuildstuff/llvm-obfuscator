@@ -1,0 +1,532 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:LLVMObfuscatorAvalonia.ViewModels"
+        xmlns:views="using:LLVMObfuscatorAvalonia.Views"
+        mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
+        Width="1000" Height="700"
+        x:Class="LLVMObfuscatorAvalonia.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="{Binding ApplicationTitle}"
+        WindowStartupLocation="CenterScreen"
+        CanResize="False"
+        SystemDecorations="None"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        TransparencyLevelHint="AcrylicBlur"
+        Background="Transparent">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel />
+    </Design.DataContext>
+
+    <Window.Styles>
+        <!-- Light Theme Colors -->
+        <Style>
+            <Style.Resources>
+                <SolidColorBrush x:Key="AppPrimary">#3B82F6</SolidColorBrush>
+                <SolidColorBrush x:Key="AppSuccess">#10B981</SolidColorBrush>
+                <SolidColorBrush x:Key="AppDanger">#EF4444</SolidColorBrush>
+                <SolidColorBrush x:Key="AppWarning">#F59E0B</SolidColorBrush>
+                <SolidColorBrush x:Key="AppInfo">#3B82F6</SolidColorBrush>
+                <SolidColorBrush x:Key="AppBackground">#F9FAFB</SolidColorBrush>
+                <SolidColorBrush x:Key="AppSurface">#FFFFFF</SolidColorBrush>
+                <SolidColorBrush x:Key="AppBorder">#E5E7EB</SolidColorBrush>
+                <SolidColorBrush x:Key="AppText">#1F2937</SolidColorBrush>
+                <SolidColorBrush x:Key="AppTextSecondary">#6B7280</SolidColorBrush>
+            </Style.Resources>
+        </Style>
+        
+        <!-- Button Base Style -->
+        <Style Selector="Button">
+            <Setter Property="IsVisible" Value="True" />
+            <Setter Property="Opacity" Value="1" />
+            <Setter Property="Foreground" Value="#1F2937" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="#E5E7EB" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="16,8" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        
+        <Style Selector="Button /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="#1F2937" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+
+        <Style Selector="Button:pointerover /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="#1F2937" />
+            <Setter Property="Background" Value="#F3F4F6" />
+        </Style>
+        <Style Selector="Button:pointerover">
+            <Setter Property="Background" Value="#F3F4F6" />
+            <Setter Property="Foreground" Value="#1F2937" />
+        </Style>
+
+        <Style Selector="Button:pressed /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="#1F2937" />
+            <Setter Property="Background" Value="#E5E7EB" />
+        </Style>
+        <Style Selector="Button:pressed">
+            <Setter Property="Background" Value="#E5E7EB" />
+            <Setter Property="Foreground" Value="#1F2937" />
+        </Style>
+
+        <!-- Primary Button -->
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="#3B82F6" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.primary /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="#3B82F6" />
+        </Style>
+        <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="#2563EB" />
+        </Style>
+        <Style Selector="Button.primary:pointerover">
+            <Setter Property="Background" Value="#2563EB" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.primary:pressed /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="#1D4ED8" />
+        </Style>
+        <Style Selector="Button.primary:pressed">
+            <Setter Property="Background" Value="#1D4ED8" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+
+        <!-- Success Button -->
+        <Style Selector="Button.success">
+            <Setter Property="Background" Value="#10B981" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.success /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="#10B981" />
+        </Style>
+        <Style Selector="Button.success:pointerover /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="#059669" />
+        </Style>
+        <Style Selector="Button.success:pointerover">
+            <Setter Property="Background" Value="#059669" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.success:pressed /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="#047857" />
+        </Style>
+        <Style Selector="Button.success:pressed">
+            <Setter Property="Background" Value="#047857" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+
+        <!-- Danger Button -->
+        <Style Selector="Button.danger">
+            <Setter Property="Background" Value="#EF4444" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.danger /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="#EF4444" />
+        </Style>
+        <Style Selector="Button.danger:pointerover /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="#DC2626" />
+        </Style>
+        <Style Selector="Button.danger:pointerover">
+            <Setter Property="Background" Value="#DC2626" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.danger:pressed /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="#B91C1C" />
+        </Style>
+        <Style Selector="Button.danger:pressed">
+            <Setter Property="Background" Value="#B91C1C" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+
+        <!-- CHECKBOX STYLES - UNCHECKED BOXES MUST BE VISIBLE! -->
+        <Style Selector="CheckBox">
+            <Setter Property="IsVisible" Value="True" />
+            <Setter Property="Opacity" Value="1" />
+            <Setter Property="Foreground" Value="#1F2937" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+
+        <!-- Force all child TextBlocks to be visible -->
+        <Style Selector="CheckBox > TextBlock">
+            <Setter Property="Foreground" Value="#1F2937" />
+            <Setter Property="IsVisible" Value="True" />
+            <Setter Property="Opacity" Value="1" />
+        </Style>
+
+        <!-- CheckBox Border - ALWAYS VISIBLE WITH GRAY BORDER WHEN UNCHECKED -->
+        <Style Selector="CheckBox /template/ Border#NormalRectangle">
+            <Setter Property="BorderBrush" Value="#9CA3AF" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Width" Value="20" />
+            <Setter Property="Height" Value="20" />
+            <Setter Property="IsVisible" Value="True" />
+            <Setter Property="Opacity" Value="1" />
+        </Style>
+
+        <!-- CheckBox Text - Always dark gray -->
+        <Style Selector="CheckBox /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Foreground" Value="#1F2937" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="IsVisible" Value="True" />
+            <Setter Property="Opacity" Value="1" />
+        </Style>
+
+        <!-- Target TextBlock inside ContentPresenter -->
+        <Style Selector="CheckBox /template/ ContentPresenter#PART_ContentPresenter TextBlock">
+            <Setter Property="Foreground" Value="#1F2937" />
+            <Setter Property="IsVisible" Value="True" />
+            <Setter Property="Opacity" Value="1" />
+        </Style>
+
+        <!-- DISABLE ALL VISUAL STATE CHANGES - TEXT MUST STAY CONSTANT -->
+        
+        <!-- Hover: Only border changes, TEXT STAYS SAME -->
+        <Style Selector="CheckBox:pointerover /template/ Border#NormalRectangle">
+            <Setter Property="BorderBrush" Value="#3B82F6" />
+            <Setter Property="Background" Value="White" />
+        </Style>
+        <Style Selector="CheckBox:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Foreground" Value="#1F2937" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="CheckBox:pointerover /template/ ContentPresenter#PART_ContentPresenter TextBlock">
+            <Setter Property="Foreground" Value="#1F2937" />
+        </Style>
+        <Style Selector="CheckBox:pointerover">
+            <Setter Property="Foreground" Value="#1F2937" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+
+        <!-- Pressed: Only border changes, TEXT STAYS SAME -->
+        <Style Selector="CheckBox:pressed /template/ Border#NormalRectangle">
+            <Setter Property="BorderBrush" Value="#3B82F6" />
+            <Setter Property="Background" Value="White" />
+        </Style>
+        <Style Selector="CheckBox:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Foreground" Value="#1F2937" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="CheckBox:pressed /template/ ContentPresenter#PART_ContentPresenter TextBlock">
+            <Setter Property="Foreground" Value="#1F2937" />
+        </Style>
+        <Style Selector="CheckBox:pressed">
+            <Setter Property="Foreground" Value="#1F2937" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+
+        <!-- Checked: Box is blue, TEXT STAYS SAME -->
+        <Style Selector="CheckBox:checked /template/ Border#NormalRectangle">
+            <Setter Property="Background" Value="#3B82F6" />
+            <Setter Property="BorderBrush" Value="#3B82F6" />
+        </Style>
+        <Style Selector="CheckBox:checked /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Foreground" Value="#1F2937" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="CheckBox:checked /template/ ContentPresenter#PART_ContentPresenter TextBlock">
+            <Setter Property="Foreground" Value="#1F2937" />
+        </Style>
+        <Style Selector="CheckBox:checked">
+            <Setter Property="Foreground" Value="#1F2937" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+
+        <!-- Checked + Hover: TEXT STAYS SAME -->
+        <Style Selector="CheckBox:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Foreground" Value="#1F2937" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="CheckBox:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter TextBlock">
+            <Setter Property="Foreground" Value="#1F2937" />
+        </Style>
+        <Style Selector="CheckBox:checked:pointerover">
+            <Setter Property="Foreground" Value="#1F2937" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+
+        <!-- Checked + Pressed: TEXT STAYS SAME -->
+        <Style Selector="CheckBox:checked:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Foreground" Value="#1F2937" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="CheckBox:checked:pressed /template/ ContentPresenter#PART_ContentPresenter TextBlock">
+            <Setter Property="Foreground" Value="#1F2937" />
+        </Style>
+        <Style Selector="CheckBox:checked:pressed">
+            <Setter Property="Foreground" Value="#1F2937" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+
+        <!-- TextBox Style -->
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Foreground" Value="#1F2937" />
+            <Setter Property="BorderBrush" Value="#E5E7EB" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="10,8" />
+        </Style>
+        <Style Selector="TextBox:focus">
+            <Setter Property="BorderBrush" Value="#3B82F6" />
+        </Style>
+
+        <!-- TextBlock Styles -->
+        <Style Selector="TextBlock">
+            <Setter Property="Foreground" Value="#1F2937" />
+        </Style>
+        <Style Selector="TextBlock:pointerover">
+            <Setter Property="Foreground" Value="#1F2937" />
+        </Style>
+        <Style Selector="TextBlock.subtitle">
+            <Setter Property="Foreground" Value="#6B7280" />
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+        <Style Selector="TextBlock.subtitle:pointerover">
+            <Setter Property="Foreground" Value="#6B7280" />
+        </Style>
+
+        <!-- Card Style -->
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="#E5E7EB" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="24" />
+        </Style>
+
+    </Window.Styles>
+
+    <!-- Main Container -->
+    <Border Background="White"
+            CornerRadius="12"
+            BorderThickness="1"
+            BorderBrush="#E5E7EB"
+            Margin="8">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="30" OffsetY="8" Opacity="0.15" Color="#000000" />
+        </Border.Effect>
+
+        <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+            <!-- Custom Title Bar -->
+            <Border Grid.Row="0" 
+                    Background="#3B82F6"
+                    CornerRadius="12,12,0,0"
+                    Height="48"
+                    PointerPressed="TitleBar_PointerPressed">
+                <Grid ColumnDefinitions="Auto,*,Auto" Margin="16,0">
+                    
+                    <!-- App Title -->
+                    <StackPanel Grid.Column="0" 
+                                Orientation="Horizontal" 
+                                Spacing="12"
+                                VerticalAlignment="Center">
+                        <TextBlock Text="{Binding ApplicationTitle}"
+                               FontSize="14" 
+                                   FontWeight="Bold"
+                               Foreground="White" 
+                                   VerticalAlignment="Center" />
+                </StackPanel>
+
+                    <!-- Window Controls -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- Minimize Button -->
+                        <Button Content="—"
+                                FontSize="18"
+                                FontWeight="Bold"
+                                Width="40" Height="40"
+                                Padding="0"
+                                Margin="4,0"
+                                Background="Transparent"
+                                Foreground="White"
+                                BorderThickness="0"
+                                CornerRadius="8"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center"
+                                ToolTip.Tip="Minimize"
+                                Command="{Binding MinimizeCommand}">
+                            <Button.Styles>
+                                <Style Selector="Button /template/ ContentPresenter">
+                                    <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    <Setter Property="VerticalContentAlignment" Value="Center" />
+                                    <Setter Property="Foreground" Value="White" />
+                                </Style>
+                                <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                    <Setter Property="Background" Value="#FFFFFF20" />
+                                    <Setter Property="Foreground" Value="White" />
+                                </Style>
+                                <Style Selector="Button:pointerover">
+                                    <Setter Property="Background" Value="#FFFFFF20" />
+                                    <Setter Property="Foreground" Value="White" />
+                                </Style>
+                                <Style Selector="Button:pressed /template/ ContentPresenter">
+                                    <Setter Property="Background" Value="#FFFFFF30" />
+                                    <Setter Property="Foreground" Value="White" />
+                                </Style>
+                                <Style Selector="Button:pressed">
+                                    <Setter Property="Background" Value="#FFFFFF30" />
+                                    <Setter Property="Foreground" Value="White" />
+                                </Style>
+                            </Button.Styles>
+                        </Button>
+
+                        <!-- Close Button -->
+                        <Button Content="✕"
+                                FontSize="18"
+                                FontWeight="Bold"
+                                Width="40" Height="40"
+                                Padding="0"
+                                Margin="4,0,0,0"
+                                Background="Transparent"
+                                Foreground="White"
+                                BorderThickness="0"
+                                CornerRadius="8"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center"
+                                ToolTip.Tip="Close"
+                                Command="{Binding CloseCommand}">
+                            <Button.Styles>
+                                <Style Selector="Button /template/ ContentPresenter">
+                                    <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    <Setter Property="VerticalContentAlignment" Value="Center" />
+                                    <Setter Property="Foreground" Value="White" />
+                                </Style>
+                                <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                    <Setter Property="Background" Value="#EF4444" />
+                                    <Setter Property="Foreground" Value="White" />
+                                </Style>
+                                <Style Selector="Button:pointerover">
+                                    <Setter Property="Background" Value="#EF4444" />
+                                    <Setter Property="Foreground" Value="White" />
+                                </Style>
+                                <Style Selector="Button:pressed /template/ ContentPresenter">
+                                    <Setter Property="Background" Value="#DC2626" />
+                                    <Setter Property="Foreground" Value="White" />
+                                </Style>
+                                <Style Selector="Button:pressed">
+                                    <Setter Property="Background" Value="#DC2626" />
+                                    <Setter Property="Foreground" Value="White" />
+                                </Style>
+                            </Button.Styles>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Action Bar -->
+            <Border Grid.Row="1" 
+                    Background="#3B82F6"
+                    Padding="20,12">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding StatusMessage}"
+                               FontSize="13"
+                               Foreground="White"
+                               VerticalAlignment="Center" />
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                        <Button Content="Help"
+                                Width="70" Height="32"
+                                Padding="12,6"
+                                FontSize="12"
+                                FontWeight="SemiBold"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center"
+                        Background="White"
+                                Foreground="#3B82F6"
+                                BorderThickness="0"
+                                CornerRadius="6"
+                                Command="{Binding HelpCommand}">
+                            <Button.Styles>
+                                <Style Selector="Button /template/ ContentPresenter">
+                                    <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    <Setter Property="VerticalContentAlignment" Value="Center" />
+                                    <Setter Property="Foreground" Value="#3B82F6" />
+                                </Style>
+                                <Style Selector="Button:pointerover">
+                                    <Setter Property="Background" Value="#F3F4F6" />
+                                </Style>
+                                <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                    <Setter Property="Foreground" Value="#3B82F6" />
+                                </Style>
+                            </Button.Styles>
+                        </Button>
+                        
+                        <Button Content="About"
+                                Width="70" Height="32"
+                                Padding="12,6"
+                                FontSize="12"
+                        FontWeight="SemiBold"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center"
+                                Background="White"
+                                Foreground="#3B82F6"
+                                BorderThickness="0"
+                                CornerRadius="6"
+                                Command="{Binding AboutCommand}">
+                            <Button.Styles>
+                                <Style Selector="Button /template/ ContentPresenter">
+                                    <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    <Setter Property="VerticalContentAlignment" Value="Center" />
+                                    <Setter Property="Foreground" Value="#3B82F6" />
+                                </Style>
+                                <Style Selector="Button:pointerover">
+                                    <Setter Property="Background" Value="#F3F4F6" />
+                                </Style>
+                                <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                    <Setter Property="Foreground" Value="#3B82F6" />
+                                </Style>
+                            </Button.Styles>
+                        </Button>
+                    </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Main Content Area -->
+        <Border Grid.Row="2" 
+                Background="#F9FAFB"
+                Padding="0">
+            <ContentControl Content="{Binding CurrentView}" />
+        </Border>
+
+            <!-- Footer -->
+            <Border Grid.Row="3" 
+                    Background="White"
+                    BorderBrush="#E5E7EB"
+                BorderThickness="0,1,0,0"
+                    CornerRadius="0,0,12,12"
+                    Padding="20,12">
+                <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0" 
+                               Text="© 2025 LLVM Obfuscator Project"
+                               FontSize="11"
+                               Foreground="#6B7280"
+                               VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1"
+                               Text="Version 4.0.0"
+                               FontSize="11"
+                           FontWeight="Medium"
+                               Foreground="#3B82F6"
+                               VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            </Grid>
+        </Border>
+
+</Window>

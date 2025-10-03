@@ -1,0 +1,85 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:LLVMObfuscatorAvalonia.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="600"
+             x:Class="LLVMObfuscatorAvalonia.Views.FileSelectionView"
+             x:DataType="vm:FileSelectionViewModel">
+
+    <Design.DataContext>
+        <vm:FileSelectionViewModel />
+    </Design.DataContext>
+
+    <ScrollViewer>
+        <StackPanel Margin="40" Spacing="30">
+            
+            <!-- Title Section -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="📁 Select Input File" 
+                           FontSize="24" FontWeight="Bold" 
+                           HorizontalAlignment="Center" />
+                <TextBlock Text="Choose your LLVM IR file (.ll or .bc)" 
+                           Classes="subtitle" 
+                           HorizontalAlignment="Center" />
+            </StackPanel>
+
+            <!-- File Selection Card -->
+            <Border Classes="card" Margin="0,20,0,0">
+                <StackPanel Spacing="20" HorizontalAlignment="Center">
+                    
+                    <!-- Browse Button Section -->
+                    <StackPanel Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Button Content="Browse Files" 
+                                Classes="primary"
+                                Width="280" Height="40"
+                                FontSize="18" FontWeight="Bold"
+                                HorizontalContentAlignment="Center"
+                                Command="{Binding BrowseFilesCommand}" />
+                        <TextBlock Text="or drag &amp; drop" 
+                                   FontStyle="Italic" 
+                                   FontSize="10"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+                    </StackPanel>
+
+                    <!-- File Status Section -->
+                    <StackPanel Spacing="5" HorizontalAlignment="Center">
+                        <TextBlock Text="{Binding FileStatusText}" 
+                                   FontSize="12" FontWeight="Bold" 
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding FileInfoText}" 
+                                   FontSize="10"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Output Settings -->
+            <StackPanel Spacing="20">
+                <TextBlock Text="Output Settings" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center" />
+                
+                <Grid ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto">
+                    
+                    <!-- Output File -->
+                    <TextBlock Grid.Row="0" Grid.Column="0" 
+                               Text="Output File:" 
+                               VerticalAlignment="Center" />
+                    <TextBox Grid.Row="0" Grid.Column="1" 
+                             Text="{Binding OutputFileName}" 
+                             Width="300" />
+                    
+                    <!-- Report File -->
+                    <TextBlock Grid.Row="0" Grid.Column="2" 
+                               Text="Report File:" 
+                               VerticalAlignment="Center" />
+                    <TextBox Grid.Row="0" Grid.Column="3" 
+                             Text="{Binding ReportFileName}" 
+                             Width="280" />
+                </Grid>
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
