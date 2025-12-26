@@ -1,0 +1,114 @@
+steps:
+  # Build backend Docker image (from project root)
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-f'
+      - 'deployment/Dockerfile.backend'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/backend:${SHORT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/backend:latest'
+      - '.'
+    id: 'build-backend'
+
+  # Build frontend Docker image (from project root)
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-f'
+      - 'deployment/Dockerfile.frontend'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/frontend:${SHORT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/frontend:latest'
+      - '.'
+    id: 'build-frontend'
+
+  # Push backend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/backend:${SHORT_SHA}'
+    id: 'push-backend'
+
+  # Push backend latest
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/backend:latest'
+    id: 'push-backend-latest'
+
+  # Push frontend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/frontend:${SHORT_SHA}'
+    id: 'push-frontend'
+
+  # Push frontend latest
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/frontend:latest'
+    id: 'push-frontend-latest'
+
+  # Deploy backend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'llvm-obfuscator-backend'
+      - '--image'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/backend:${SHORT_SHA}'
+      - '--region'
+      - '${_REGION}'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--memory'
+      - '2Gi'
+      - '--cpu'
+      - '2'
+      - '--timeout'
+      - '300'
+    id: 'deploy-backend'
+
+  # Deploy frontend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'llvm-obfuscator-frontend'
+      - '--image'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/frontend:${SHORT_SHA}'
+      - '--region'
+      - '${_REGION}'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '1'
+      - '--set-env-vars'
+      - 'NEXT_PUBLIC_API_URL=https://llvm-obfuscator-backend-${_REGION}-${PROJECT_ID}.a.run.app'
+    id: 'deploy-frontend'
+
+options:
+  machineType: 'E2_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  _REGION: 'us-central1'
+  _REPO_NAME: 'llvm-obfuscator'
+
+images:
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/backend:${SHORT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/backend:latest'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/frontend:${SHORT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/frontend:latest'
+
+

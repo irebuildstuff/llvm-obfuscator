@@ -1,199 +1,172 @@
-# LLVM Obfuscator GUI
+# LLVM Code Obfuscator Web Application
 
-A modern, professional desktop application for LLVM code obfuscation built with Avalonia UI. This tool provides an intuitive graphical interface for applying various obfuscation techniques to LLVM IR code.
+A modern, cloud-hosted web application that makes the LLVM Code Obfuscator accessible to users through a browser. Users can upload C/C++ source files, configure obfuscation settings, and receive ready-to-run executables plus detailed obfuscation reports.
 
-![LLVM Obfuscator GUI](https://img.shields.io/badge/Platform-Windows-blue)
-![.NET](https://img.shields.io/badge/.NET-8.0-purple)
-![Avalonia UI](https://img.shields.io/badge/UI-Avalonia-green)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+## Features
 
-## ✨ Features
+- **User-Friendly Interface**: VirusTotal-inspired modern UI with drag-and-drop file upload
+- **Multiple Obfuscation Presets**: Light, Medium, Heavy, and Custom configurations
+- **Real-time Progress**: Live updates during obfuscation process
+- **Detailed Reports**: Comprehensive obfuscation statistics displayed directly on the website
+- **Ready-to-Run Executables**: Download obfuscated binaries immediately
+- **Cloud-Ready**: Designed for deployment on Google Cloud Platform
 
-- **🎯 Modern UI**: Clean, professional interface built with Avalonia UI
-- **📁 File Selection**: Easy file browsing with drag-and-drop support
-- **⚙️ Configuration**: Multiple obfuscation presets and custom options
-- **📊 Results Display**: Clear visualization of obfuscation metrics
-- **🔄 Workflow**: Seamless navigation between steps
-- **💾 Export**: Download obfuscated files and reports
-- **🚀 Performance**: Optimized for large codebases
+## Architecture
 
-## 🖼️ Screenshots
+```
+Frontend (Next.js) → Backend API (Node.js) → Obfuscation Service (C++ binary)
+```
 
-### File Selection
-Clean file selection interface with drag-and-drop support.
+## Project Structure
 
-### Configuration
-Multiple obfuscation presets:
-- **Basic**: Light obfuscation for performance
-- **Standard**: Balanced obfuscation
-- **Advanced**: Maximum obfuscation
-- **Custom**: User-defined settings
+```
+web-app/
+├── frontend/          # Next.js frontend application
+├── backend/           # Express.js backend API
+├── deployment/        # GCP deployment configurations
+└── docker-compose.yml # Local development setup
+```
 
-### Results
-Professional results display with metrics and download options.
-
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
-- Windows 10/11 (x64)
-- .NET 8.0 Runtime (included in self-contained build)
 
-### Installation
-1. Download the latest release from the [Releases](https://github.com/yourusername/llvm-obfuscator-gui/releases) page
-2. Extract `LLVMObfuscatorAvalonia.exe` to your desired location
-3. Run the executable
+- Node.js 20+
+- Docker and Docker Compose
+- Built LLVM obfuscator binary (`llvm-obfuscator.exe` or `llvm-obfuscator`)
+- Clang/LLVM toolchain installed
 
-### Usage
-1. **Select File**: Choose your LLVM IR file (.ll) or bitcode file (.bc)
-2. **Configure**: Select a preset or customize obfuscation settings
-3. **Process**: Click "Start Obfuscation" to begin processing
-4. **Download**: Review results and download obfuscated files
+### Local Development
 
-## 🛠️ Development
+1. **Start Backend**:
+   ```bash
+   cd backend
+   npm install
+   npm start
+   ```
 
-### Building from Source
+2. **Start Frontend**:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
 
-#### Prerequisites
-- .NET 8.0 SDK
-- Visual Studio 2022 or VS Code
+3. **Using Docker Compose**:
+   ```bash
+   docker-compose up
+   ```
 
-#### Build Steps
+### Access the Application
+
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:3001
+
+## Deployment
+
+See [deployment/gcp-setup.md](deployment/gcp-setup.md) for detailed GCP deployment instructions.
+
+### Quick Deploy to GCP
+
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/llvm-obfuscator-gui.git
-cd llvm-obfuscator-gui
+# Set environment variables
+export PROJECT_ID="your-project-id"
+export REGION="us-central1"
 
-# Restore dependencies
-dotnet restore
-
-# Build the application
-dotnet build --configuration Release
-
-# Run the application
-dotnet run --project LLVMObfuscatorAvalonia
+# Deploy using Cloud Build
+gcloud builds submit --config=deployment/cloudbuild.yaml
 ```
 
-#### Creating Release Build
-```bash
-# Use the provided build script
-./build-avalonia.bat
+## API Endpoints
 
-# Or manually publish
-dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
+### POST /api/obfuscate
+Upload a C/C++ file and start obfuscation.
+
+**Request**: Multipart form data with `file`, `preset`, and `options`
+
+**Response**:
+```json
+{
+  "jobId": "uuid",
+  "status": "processing",
+  "message": "Obfuscation job started"
+}
 ```
 
-## 📋 Obfuscation Techniques
+### GET /api/status/:jobId
+Get the status of an obfuscation job.
 
-The application supports various obfuscation techniques:
-
-- **Control Flow Flattening**: Restructures program flow
-- **Function Inlining**: Inlines function calls
-- **Dead Code Insertion**: Adds non-functional code
-- **String Encryption**: Encrypts string literals
-- **Variable Substitution**: Replaces variable names
-- **Instruction Substitution**: Replaces instructions with equivalents
-- **Bogus Control Flow**: Adds fake control flow
-- **Function Splitting**: Splits functions into multiple parts
-
-## 🎨 UI Features
-
-- **Modern Design**: Clean, professional interface
-- **Responsive Layout**: Adapts to different screen sizes
-- **Dark/Light Theme**: Automatic theme detection
-- **Accessibility**: Full keyboard navigation support
-- **Progress Tracking**: Real-time progress updates
-- **Error Handling**: Comprehensive error reporting
-
-## 📁 Project Structure
-
-```
-LLVMObfuscatorGUI/
-├── LLVMObfuscatorAvalonia/          # Main Avalonia application
-│   ├── Views/                       # UI views (XAML)
-│   ├── ViewModels/                  # MVVM view models
-│   ├── Services/                    # Business logic services
-│   ├── Models/                      # Data models
-│   └── Resources/                   # Assets and resources
-├── build-avalonia.bat               # Build script
-└── README.md                        # This file
+**Response**:
+```json
+{
+  "status": "completed",
+  "progress": 100,
+  "executableUrl": "/api/download/jobId/executable",
+  "report": {
+    "raw": "...",
+    "parsed": {
+      "metrics": {...},
+      "summary": {...}
+    }
+  }
+}
 ```
 
-## 🔧 Configuration
+### GET /api/download/:jobId/:fileType
+Download obfuscated executable or report.
 
-### Obfuscation Presets
+**File Types**: `executable`, `report`
 
-| Preset | Description | Use Case |
-|--------|-------------|----------|
-| **Basic** | Light obfuscation | Performance-critical applications |
-| **Standard** | Balanced approach | General-purpose obfuscation |
-| **Advanced** | Maximum protection | High-security requirements |
-| **Custom** | User-defined | Specific requirements |
+## Configuration
 
-### Supported File Formats
-- LLVM IR files (`.ll`)
-- LLVM Bitcode files (`.bc`)
-- Clang-generated files
+### Backend Configuration
 
-## 🐛 Troubleshooting
+Edit `backend/.env`:
+```env
+PORT=3001
+CLANG_PATH=clang
+OBFUSCATOR_PATH=./llvm-obfuscator
+MAX_FILE_SIZE=10485760
+```
 
-### Common Issues
+### Frontend Configuration
 
-**Application won't start**
-- Ensure you have .NET 8.0 Runtime installed
-- Check Windows version compatibility (Windows 10/11 required)
+Edit `frontend/next.config.js`:
+```javascript
+env: {
+  NEXT_PUBLIC_API_URL: 'http://localhost:3001'
+}
+```
 
-**File processing fails**
-- Verify file format (must be valid LLVM IR or bitcode)
-- Check file permissions
-- Ensure sufficient disk space
+## Obfuscation Presets
 
-**Performance issues**
-- Close other applications to free memory
-- Use Basic preset for large files
-- Consider splitting large files
+- **Light**: Basic protection with minimal overhead (5-10%)
+- **Medium**: Balanced security and performance (15-25%)
+- **Heavy**: Maximum protection with higher overhead (50-200%)
+- **Custom**: Full control over all obfuscation techniques
 
-## 🤝 Contributing
+## Security Considerations
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+- File size limits (10MB default)
+- File type validation (C/C++ only)
+- Timeout protection
+- Sandboxed execution in Docker
+- Automatic cleanup of temporary files
+- HTTPS only in production
 
-### Development Setup
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+## License
 
-## 📄 License
+MIT License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## Contributing
 
-## 🙏 Acknowledgments
+Contributions are welcome! Please feel free to submit pull requests or open issues.
 
-- [Avalonia UI](https://avaloniaui.net/) - Cross-platform UI framework
-- [LLVM Project](https://llvm.org/) - Compiler infrastructure
-- [Community Toolkit MVVM](https://github.com/CommunityToolkit/dotnet) - MVVM helpers
+## Support
 
-## 📞 Support
+For issues or questions, please check:
+- Backend logs: `gcloud run services logs read llvm-obfuscator-backend`
+- Frontend logs: `gcloud run services logs read llvm-obfuscator-frontend`
+- Health endpoint: `GET /health`
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/llvm-obfuscator-gui/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/llvm-obfuscator-gui/discussions)
-- **Email**: support@yourdomain.com
 
-## 🔄 Changelog
-
-### Version 4.0.0 (Latest)
-- ✨ Complete UI redesign with Avalonia
-- 🎯 Professional interface with modern design
-- 🔧 Improved obfuscation engine
-- 📊 Enhanced results visualization
-- 🚀 Better performance and stability
-- 🐛 Fixed various UI issues
-
-### Previous Versions
-- Version 3.x: WinForms-based GUI
-- Version 2.x: Command-line interface
-- Version 1.x: Initial release
-
----
-
-**Made with ❤️ for the LLVM community**

@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: llvm-obfuscator-backend
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: CLANG_PATH
+        value: clang
+      - key: OBFUSCATOR_PATH
+        value: /app/llvm-obfuscator
+    healthCheckPath: /health
+    autoDeploy: true
+    buildCommand: ""
+    startCommand: ""
+

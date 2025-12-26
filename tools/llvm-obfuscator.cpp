@@ -23,10 +23,59 @@
 #include <vector>
 #include <map>
 #include <regex>
+#include <cstdlib>
+#include <sstream>
 #ifdef _WIN32
 #include <windows.h>
 #include <conio.h>
+#else
+#include <unistd.h>
+#include <limits.h>
 #endif
+
+// Helper function to get executable directory
+static std::string getExecutableDirectory() {
+#ifdef _WIN32
+    char exePath[MAX_PATH];
+    DWORD length = GetModuleFileNameA(NULL, exePath, MAX_PATH);
+    if (length > 0) {
+        std::filesystem::path exe(exePath);
+        return exe.parent_path().string();
+    }
+#else
+    // For Unix/Linux, try to get from /proc/self/exe or argv[0]
+    char exePath[1024];
+    ssize_t len = readlink("/proc/self/exe", exePath, sizeof(exePath) - 1);
+    if (len != -1) {
+        exePath[len] = '\0';
+        std::filesystem::path exe(exePath);
+        return exe.parent_path().string();
+    }
+#endif
+    // Fallback: return current directory
+    return std::filesystem::current_path().string();
+}
+
+// Helper function to ensure directory exists for a file path
+static bool ensureDirectoryExists(const std::string& filePath) {
+    std::filesystem::path path(filePath);
+    std::filesystem::path dir = path.parent_path();
+    
+    // If no parent path (file is in current directory), no need to create
+    if (dir.empty() || dir == "." || dir == path.root_path()) {
+        return true;
+    }
+    
+    // Check if directory already exists
+    if (std::filesystem::exists(dir)) {
+        return true;
+    }
+    
+    // Create directory (and all parent directories)
+    std::error_code EC;
+    std::filesystem::create_directories(dir, EC);
+    return !EC;
+}
 
 using namespace llvm;
 
@@ -472,13 +521,17 @@ namespace CLI {
 
 static cl::opt<std::string> InputFilename(cl::Positional, cl::desc("<input file>"));
 static cl::opt<std::string> OutputFilename("o", cl::desc("Output filename"), cl::value_desc("filename"));
-static cl::opt<std::string> ReportFilename("report", cl::desc("Report filename"), cl::value_desc("filename"), cl::init("obfuscation_report.txt"));
+static cl::opt<std::string> ReportFilename("report", cl::desc("Report filename"), cl::value_desc("filename"), cl::init(""));
 
 // Obfuscation options
 static cl::opt<bool> EnableControlFlow("cf", cl::desc("Enable control flow obfuscation"), cl::init(true));
+static cl::opt<bool> DisableControlFlow("no-cf", cl::desc("Disable control flow obfuscation"), cl::init(false));
 static cl::opt<bool> EnableStringEncryption("str", cl::desc("Enable string encryption"), cl::init(true));
+static cl::opt<bool> DisableStringEncryption("no-str", cl::desc("Disable string encryption"), cl::init(false));
 static cl::opt<bool> EnableBogusCode("bogus", cl::desc("Enable bogus code insertion"), cl::init(true));
+static cl::opt<bool> DisableBogusCode("no-bogus", cl::desc("Disable bogus code insertion"), cl::init(false));
 static cl::opt<bool> EnableFakeLoops("loops", cl::desc("Enable fake loop insertion"), cl::init(true));
+static cl::opt<bool> DisableFakeLoops("no-loops", cl::desc("Disable fake loop insertion"), cl::init(false));
 static cl::opt<bool> EnableInstructionSubst("subs", cl::desc("Enable instruction substitution"), cl::init(false));
 static cl::opt<bool> EnableCFF("flatten", cl::desc("Enable control flow flattening"), cl::init(false));
 static cl::opt<bool> EnableMBA("mba", cl::desc("Enable mixed boolean arithmetic"), cl::init(false));
@@ -505,8 +558,17 @@ static cl::opt<std::string> TargetTriple("triple", cl::desc("Target triple"), cl
 static cl::opt<bool> GenerateWindowsBinary("win", cl::desc("Generate Windows binary"), cl::init(false));
 static cl::opt<bool> GenerateLinuxBinary("linux", cl::desc("Generate Linux binary"), cl::init(false));
 
+// Auto-compilation options
+static cl::opt<bool> AutoCompileToExe("compile", cl::desc("Automatically compile obfuscated IR to executable"), cl::init(false));
+static cl::opt<bool> KeepIntermediateFiles("keep-temp", cl::desc("Keep intermediate .ll files"), cl::init(false));
+
 // Verbose output
 static cl::opt<bool> Verbose("v", cl::desc("Verbose output"), cl::init(false));
+
+// Forward declarations
+static bool isSourceFile(const std::string& filename);
+static bool compileToLLVMIR(const std::string& sourceFile, const std::string& outputIR, CLI::ColorOutput& color);
+static bool compileIRToExe(const std::string& irFile, const std::string& outputExe, CLI::ColorOutput& color);
 
 // Clean ASCII Banner Functions
 void printCleanBanner() {
@@ -516,21 +578,21 @@ void printCleanBanner() {
     
     // Top decorative line
     color.println("=================================================================", CLI::BRIGHT_CYAN);
+    color.println("", CLI::BRIGHT_CYAN);
     
     // Main title
-    color.println("", CLI::BRIGHT_CYAN);
     color.printCentered("LLVM CODE OBFUSCATOR", 65, CLI::BOLD + CLI::BRIGHT_WHITE);
     color.println("");
+    color.println("");
     
-    color.println("", CLI::BRIGHT_CYAN);
     color.printCentered("Advanced Code Protection Suite", 65, CLI::BRIGHT_YELLOW);
     color.println("");
-    
-    color.println("", CLI::BRIGHT_CYAN);
-    color.printCentered("Professional Security & Anti-Analysis", 65, CLI::BRIGHT_GREEN);
     color.println("");
     
-    color.println("", CLI::BRIGHT_CYAN);
+    color.printCentered("Professional Security & Anti-Analysis", 65, CLI::BRIGHT_GREEN);
+    color.println("");
+    color.println("");
+    
     color.printCentered("Enhanced CLI v3.0 - Clean Interface", 65, CLI::BRIGHT_MAGENTA);
     color.println("");
     
@@ -568,6 +630,7 @@ void printCleanSectionHeader(const std::string& title, const std::string& icon =
     
     std::cout << "\n";
     color.println("-----------------------------------------------------------------", CLI::BRIGHT_CYAN);
+    color.println("", CLI::BRIGHT_CYAN);
     color.printCentered(icon + " " + title + " " + icon, 65, CLI::BOLD + CLI::BRIGHT_WHITE);
     color.println("");
     color.println("-----------------------------------------------------------------", CLI::BRIGHT_CYAN);
@@ -740,7 +803,7 @@ int beautifulInteractiveMode() {
     // Step 1: File Selection with Analysis
     printCleanSectionHeader("STEP 1: File Selection & Analysis", "=>");
     
-    std::string inputFile = getCleanInputString("Enter path to LLVM IR file (.ll)", "auto-detect");
+    std::string inputFile = getCleanInputString("Enter path to C/C++ source file (.cpp/.c) or LLVM IR file (.ll) [auto-detect]:", "");
     if (inputFile.empty()) {
         printCleanErrorMessage("Input file cannot be empty!");
         return 1;
@@ -750,6 +813,29 @@ int beautifulInteractiveMode() {
     if (!std::filesystem::exists(inputFile)) {
         printCleanErrorMessage("File '" + inputFile + "' does not exist!");
         return 1;
+    }
+    
+    std::string actualInputFile = inputFile;
+    std::string tempIRFile;
+    bool isSource = isSourceFile(inputFile);
+    
+    // If input is C/C++ source, compile to LLVM IR first
+    if (isSource) {
+        CLI::ColorOutput color;
+        color.println("", CLI::BRIGHT_CYAN);
+        color.println("  " + CLI::ARROW + " Detected C/C++ source file", CLI::CYAN);
+        
+        std::filesystem::path sourcePath(inputFile);
+        std::string exeDir = getExecutableDirectory();
+        tempIRFile = (std::filesystem::path(exeDir) / (sourcePath.stem().string() + ".ll")).string();
+        
+        if (!compileToLLVMIR(inputFile, tempIRFile, color)) {
+            printCleanErrorMessage("Failed to compile C/C++ source to LLVM IR!");
+            return 1;
+        }
+        
+        actualInputFile = tempIRFile;
+        inputFile = tempIRFile; // Update for analysis
     }
     
     // Analyze file with beautiful spinner
@@ -893,25 +979,27 @@ int beautifulInteractiveMode() {
                 config.enableControlFlowObfuscation = true;
                 config.enableStringEncryption = true;
                 config.enableBogusCode = false;
-                config.enableFakeLoops = false;
+                config.enableFakeLoops = false; // Disabled due to PHI node issues
                 config.obfuscationCycles = 1;
                 config.bogusCodePercentage = 10;
+                config.decryptStringsAtStartup = false; // IMPROVED: Lazy decryption - strings stay encrypted
                 printCleanSuccessMessage("Light preset selected - Fast & Efficient!");
                 break;
             case 1: // Medium
                 config.enableControlFlowObfuscation = true;
                 config.enableStringEncryption = true;
                 config.enableBogusCode = true;
-                config.enableFakeLoops = true;
+                config.enableFakeLoops = false; // Temporarily disabled due to PHI node issues
                 config.obfuscationCycles = 3;
                 config.bogusCodePercentage = 30;
+                config.decryptStringsAtStartup = false; // IMPROVED: Lazy decryption - strings stay encrypted
                 printCleanSuccessMessage("Medium preset selected - Balanced Security!");
                 break;
             case 2: // Heavy
                 config.enableControlFlowObfuscation = true;
                 config.enableStringEncryption = true;
                 config.enableBogusCode = true;
-                config.enableFakeLoops = true;
+                config.enableFakeLoops = false; // Temporarily disabled due to PHI node issues
                 config.enableInstructionSubstitution = true;
                 config.enableControlFlowFlattening = true;
                 config.enableMBA = true;
@@ -919,6 +1007,7 @@ int beautifulInteractiveMode() {
                 config.obfuscationCycles = 5;
                 config.bogusCodePercentage = 50;
                 config.mbaComplexity = 5;
+                config.decryptStringsAtStartup = false; // IMPROVED: Lazy decryption - strings stay encrypted
                 printCleanSuccessMessage("Heavy preset selected - Maximum Protection!");
                 break;
         }
@@ -954,23 +1043,41 @@ int beautifulInteractiveMode() {
     // Step 4: Output Configuration
     printCleanSectionHeader("STEP 4: Output Configuration", "📤");
     
+    // Get executable directory for default output location
+    std::string exeDir = getExecutableDirectory();
+    
     std::string outputFile = getCleanInputString("Output file", "auto-generate");
-    if (outputFile.empty()) {
-        outputFile = inputFile;
-        auto hasSuffix = [](const std::string &s, const std::string &suffix) -> bool {
-            return s.size() >= suffix.size() && s.compare(s.size() - suffix.size(), suffix.size(), suffix) == 0;
-        };
-        if (hasSuffix(outputFile, ".ll")) {
-            outputFile = outputFile.substr(0, outputFile.length() - 3) + "_obfuscated.ll";
+    if (outputFile.empty() || outputFile == "auto-generate") {
+        // Get input file name (without directory)
+        std::filesystem::path inputPath(inputFile);
+        std::string inputStem = inputPath.stem().string();
+        std::string inputExt = inputPath.extension().string();
+        
+        // Create output filename in executable directory
+        if (inputExt == ".ll" || inputExt == ".bc") {
+            outputFile = (std::filesystem::path(exeDir) / (inputStem + "_obfuscated" + inputExt)).string();
         } else {
-            outputFile += "_obfuscated";
+            outputFile = (std::filesystem::path(exeDir) / (inputStem + "_obfuscated")).string();
         }
         color.println("  " + CLI::CHECKMARK + " Auto-generated: " + outputFile, CLI::BRIGHT_GREEN);
+    } else {
+        // If output is specified but relative, make it relative to executable directory
+        std::filesystem::path outputPath(outputFile);
+        if (outputPath.is_relative()) {
+            outputFile = (std::filesystem::path(exeDir) / outputPath).string();
+        }
     }
     
     std::string reportFile = getCleanInputString("Report file", "obfuscation_report.txt");
-    if (reportFile.empty()) {
-        reportFile = "obfuscation_report.txt";
+    if (reportFile.empty() || reportFile == "obfuscation_report.txt") {
+        // Default to executable directory
+        reportFile = (std::filesystem::path(exeDir) / "obfuscation_report.txt").string();
+    } else {
+        // If report path is relative, make it relative to executable directory
+        std::filesystem::path reportPath(reportFile);
+        if (reportPath.is_relative()) {
+            reportFile = (std::filesystem::path(exeDir) / reportPath).string();
+        }
     }
     config.outputReportPath = reportFile;
     
@@ -1013,7 +1120,7 @@ int beautifulInteractiveMode() {
     
     LLVMContext Context;
     SMDiagnostic Err;
-    std::unique_ptr<Module> M = parseIRFile(inputFile, Err, Context);
+    std::unique_ptr<Module> M = parseIRFile(actualInputFile, Err, Context);
     if (!M) {
         printCleanErrorMessage("Failed to load module!");
         Err.print("llvm-obfuscator", errs());
@@ -1042,6 +1149,18 @@ int beautifulInteractiveMode() {
     // Write output
     progressBar.update(90, "💾 Writing output file...");
     
+    // CRITICAL FIX: Create output directory if it doesn't exist
+    if (!ensureDirectoryExists(outputFile)) {
+        printCleanErrorMessage("Failed to create output directory for: " + outputFile);
+        return 1;
+    }
+    
+    // CRITICAL FIX: Create report directory if it doesn't exist
+    if (!reportFile.empty() && !ensureDirectoryExists(reportFile)) {
+        printCleanErrorMessage("Failed to create report directory for: " + reportFile);
+        return 1;
+    }
+    
     std::error_code EC;
     raw_fd_ostream OutFile(outputFile, EC);
     if (EC) {
@@ -1051,6 +1170,24 @@ int beautifulInteractiveMode() {
     
     M->print(OutFile, nullptr);
     OutFile.close();
+    
+    progressBar.update(95, "💾 Obfuscated IR saved");
+    
+    // Compile to executable
+    std::string outputExeFile;
+    std::filesystem::path outputPath(outputFile);
+    std::string outputStem = outputPath.stem().string();
+    // Reuse exeDir from earlier in the function
+    outputExeFile = (std::filesystem::path(exeDir) / (outputStem + ".exe")).string();
+    
+    color.println("", CLI::BRIGHT_CYAN);
+    color.println("  " + CLI::ARROW + " Compiling to executable...", CLI::CYAN);
+    
+    if (compileIRToExe(outputFile, outputExeFile, color)) {
+        color.println("  " + CLI::CHECKMARK + " Executable created: " + outputExeFile, CLI::BRIGHT_GREEN);
+    } else {
+        color.println("  " + CLI::ARROW + " Obfuscated IR saved: " + outputFile, CLI::BRIGHT_YELLOW);
+    }
     
     progressBar.update(100, "🎉 Complete!");
     
@@ -1147,15 +1284,33 @@ int cleanInteractiveMode() {
         // Step 1: File Selection with Analysis
         printCleanSectionHeader("STEP 1: File Selection & Analysis", "=>");
         
-        std::string inputFile = getCleanInputString("Enter path to LLVM IR file (.ll)", "auto-detect");
+        std::string inputFile = getCleanInputString("Enter path to C/C++ source file (.cpp/.c) or LLVM IR file (.ll) [auto-detect]:", "");
+        
+        std::string actualInputFile = inputFile;
+        std::string tempIRFile;
+        bool isSource = false;
+        
+        // Check if file exists (if not auto-detect)
+        if (!inputFile.empty() && inputFile != "auto-detect") {
+            if (!std::filesystem::exists(inputFile)) {
+                printCleanErrorMessage("File '" + inputFile + "' does not exist!");
+                pauseForUser();
+                continue;
+            }
+            isSource = isSourceFile(inputFile);
+        }
         
         // Handle auto-detect
         if (inputFile == "auto-detect" || inputFile.empty()) {
-            // Auto-detect LLVM IR files
+            // Auto-detect C/C++ source files and LLVM IR files
+            std::vector<std::string> sourceFiles;
             std::vector<std::string> llFiles;
             try {
                 for (const auto& entry : std::filesystem::directory_iterator(".")) {
-                    if (entry.path().extension() == ".ll") {
+                    std::string ext = entry.path().extension().string();
+                    if (ext == ".cpp" || ext == ".c" || ext == ".cxx" || ext == ".cc") {
+                        sourceFiles.push_back(entry.path().filename().string());
+                    } else if (ext == ".ll") {
                         llFiles.push_back(entry.path().filename().string());
                     }
                 }
@@ -1165,28 +1320,47 @@ int cleanInteractiveMode() {
                 continue;
             }
             
-            if (llFiles.empty()) {
-                printCleanErrorMessage("No LLVM IR files found in current directory!");
+            // Prefer C/C++ source files over LLVM IR files
+            if (!sourceFiles.empty()) {
+                if (sourceFiles.size() == 1) {
+                    inputFile = sourceFiles[0];
+                    printCleanSuccessMessage("Auto-detected: " + inputFile);
+                } else {
+                    printCleanSectionHeader("Multiple C/C++ source files found", "*");
+                    for (size_t i = 0; i < sourceFiles.size(); ++i) {
+                        color.println("  " + std::to_string(i + 1) + ". " + sourceFiles[i], CLI::BRIGHT_CYAN);
+                    }
+                    
+                    int choice = getCleanInputInt("Select file number", 1, 1, sourceFiles.size());
+                    if (choice < 1 || choice > sourceFiles.size()) {
+                        printCleanErrorMessage("Invalid selection!");
+                        pauseForUser();
+                        continue;
+                    }
+                    inputFile = sourceFiles[choice - 1];
+                }
+            } else if (!llFiles.empty()) {
+                if (llFiles.size() == 1) {
+                    inputFile = llFiles[0];
+                    printCleanSuccessMessage("Auto-detected: " + inputFile);
+                } else {
+                    printCleanSectionHeader("Multiple LLVM IR files found", "*");
+                    for (size_t i = 0; i < llFiles.size(); ++i) {
+                        color.println("  " + std::to_string(i + 1) + ". " + llFiles[i], CLI::BRIGHT_CYAN);
+                    }
+                    
+                    int choice = getCleanInputInt("Select file number", 1, 1, llFiles.size());
+                    if (choice < 1 || choice > llFiles.size()) {
+                        printCleanErrorMessage("Invalid selection!");
+                        pauseForUser();
+                        continue;
+                    }
+                    inputFile = llFiles[choice - 1];
+                }
+            } else {
+                printCleanErrorMessage("No C/C++ source files or LLVM IR files found in current directory!");
                 pauseForUser();
                 continue;
-            }
-            
-            if (llFiles.size() == 1) {
-                inputFile = llFiles[0];
-                printCleanSuccessMessage("Auto-detected: " + inputFile);
-            } else {
-                printCleanSectionHeader("Multiple LLVM IR files found", "*");
-                for (size_t i = 0; i < llFiles.size(); ++i) {
-                    color.println("  " + std::to_string(i + 1) + ". " + llFiles[i], CLI::BRIGHT_CYAN);
-                }
-                
-                int choice = getCleanInputInt("Select file number", 1, 1, llFiles.size());
-                if (choice < 1 || choice > llFiles.size()) {
-                    printCleanErrorMessage("Invalid selection!");
-                    pauseForUser();
-                    continue;
-                }
-                inputFile = llFiles[choice - 1];
             }
         }
         
@@ -1195,6 +1369,32 @@ int cleanInteractiveMode() {
             printCleanErrorMessage("File '" + inputFile + "' does not exist!");
             pauseForUser();
             continue;
+        }
+        
+        // Check if input is a source file (update isSource if not already set)
+        if (!isSource) {
+            isSource = isSourceFile(inputFile);
+        }
+        
+        // If input is C/C++ source, compile to LLVM IR first
+        if (isSource) {
+            color.println("", CLI::BRIGHT_CYAN);
+            color.println("  " + CLI::ARROW + " Detected C/C++ source file", CLI::CYAN);
+            
+            std::filesystem::path sourcePath(inputFile);
+            std::string exeDir = getExecutableDirectory();
+            tempIRFile = (std::filesystem::path(exeDir) / (sourcePath.stem().string() + ".ll")).string();
+            
+            if (!compileToLLVMIR(inputFile, tempIRFile, color)) {
+                printCleanErrorMessage("Failed to compile C/C++ source to LLVM IR!");
+                pauseForUser();
+                continue;
+            }
+            
+            actualInputFile = tempIRFile;
+            inputFile = tempIRFile; // Update for analysis
+        } else {
+            actualInputFile = inputFile;
         }
         
         // Analyze file with clean spinner
@@ -1283,26 +1483,109 @@ int cleanInteractiveMode() {
         // Step 3: Processing
         printCleanSectionHeader("STEP 3: Processing", "!");
         
-        std::string outputFile = inputFile.substr(0, inputFile.find_last_of('.')) + "_obfuscated.ll";
+        // Get executable directory for output
+        std::string exeDir = getExecutableDirectory();
+        std::filesystem::path inputPath(inputFile);
+        std::string inputStem = inputPath.stem().string();
+        std::string inputExt = inputPath.extension().string();
+        std::string outputFile;
+        if (inputExt == ".ll" || inputExt == ".bc") {
+            outputFile = (std::filesystem::path(exeDir) / (inputStem + "_obfuscated" + inputExt)).string();
+        } else {
+            outputFile = (std::filesystem::path(exeDir) / (inputStem + "_obfuscated")).string();
+        }
+        
+        // Set report path to executable directory
+        std::string reportPath = (std::filesystem::path(exeDir) / "obfuscation_report.txt").string();
+        
+        // Create ObfuscationConfig from preset choices
+        ObfuscationConfig config;
+        config.enableControlFlowObfuscation = enableCF;
+        config.enableStringEncryption = enableStr;
+        config.enableBogusCode = enableBogus;
+        config.enableFakeLoops = enableLoops;
+        config.obfuscationCycles = cycles;
+        config.bogusCodePercentage = bogusPercent;
+        config.fakeLoopCount = fakeLoops;
+        config.outputReportPath = reportPath;
+        config.decryptStringsAtStartup = true;
         
         CLI::ProgressBar progressBar(50);
         
         progressBar.update(10, "Loading module...");
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        
+        // Actually load and obfuscate the module
+        LLVMContext Context;
+        SMDiagnostic Err;
+        std::unique_ptr<Module> M = parseIRFile(actualInputFile, Err, Context);
+        if (!M) {
+            printCleanErrorMessage("Failed to load module!");
+            Err.print("llvm-obfuscator", errs());
+            pauseForUser();
+            continue;
+        }
         
         progressBar.update(30, "Applying obfuscation...");
-        std::this_thread::sleep_for(std::chrono::milliseconds(800));
+        
+        ObfuscationPass obfuscationPass(config);
+        bool modified = obfuscationPass.runOnModule(*M);
+        
+        if (!modified) {
+            printCleanWarningMessage("No modifications were made to the module");
+        }
         
         progressBar.update(60, "Optimizing code...");
-        std::this_thread::sleep_for(std::chrono::milliseconds(600));
         
         progressBar.update(90, "Writing output...");
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        
+        // CRITICAL FIX: Create output directory if it doesn't exist
+        if (!ensureDirectoryExists(outputFile)) {
+            printCleanErrorMessage("Failed to create output directory for: " + outputFile);
+            pauseForUser();
+            continue;
+        }
+        
+        // CRITICAL FIX: Create report directory if it doesn't exist
+        if (!reportPath.empty() && !ensureDirectoryExists(reportPath)) {
+            printCleanErrorMessage("Failed to create report directory for: " + reportPath);
+            pauseForUser();
+            continue;
+        }
+        
+        // Actually write the output file
+        std::error_code EC;
+        raw_fd_ostream OutFile(outputFile, EC);
+        if (EC) {
+            printCleanErrorMessage("Failed to open output file: " + EC.message());
+            pauseForUser();
+            continue;
+        }
+        
+        M->print(OutFile, nullptr);
+        OutFile.close();
         
         progressBar.update(100, "Complete!");
         
-        // Step 4: Results
-        printCleanSectionHeader("STEP 4: Results", "[OK]");
+        // Step 4: Compile to executable
+        printCleanSectionHeader("STEP 4: Compiling to Executable", "⚙️");
+        
+        std::string outputExeFile;
+        std::filesystem::path outputPath(outputFile);
+        std::string outputStem = outputPath.stem().string();
+        outputExeFile = (std::filesystem::path(exeDir) / (outputStem + ".exe")).string();
+        
+        color.println("", CLI::BRIGHT_CYAN);
+        if (compileIRToExe(outputFile, outputExeFile, color)) {
+            color.println("", CLI::BRIGHT_GREEN);
+            color.println("  " + CLI::CHECKMARK + " Executable created: " + outputExeFile, CLI::BRIGHT_GREEN);
+        } else {
+            color.println("", CLI::BRIGHT_YELLOW);
+            color.println("  " + CLI::ARROW + " Obfuscated IR saved: " + outputFile, CLI::BRIGHT_YELLOW);
+            color.println("  " + CLI::ARROW + " You can manually compile it later", CLI::BRIGHT_YELLOW);
+        }
+        
+        // Step 5: Results
+        printCleanSectionHeader("STEP 5: Results", "[OK]");
         
         color.println("=================================================================", CLI::BRIGHT_GREEN);
         color.printCentered("OBFUSCATION SUMMARY", 65, CLI::BOLD + CLI::BRIGHT_WHITE);
@@ -1310,7 +1593,10 @@ int cleanInteractiveMode() {
         color.println("=================================================================", CLI::BRIGHT_GREEN);
         
         color.println("Input file: " + inputFile, CLI::BRIGHT_WHITE);
-        color.println("Output file: " + outputFile, CLI::BRIGHT_CYAN);
+        color.println("Obfuscated IR: " + outputFile, CLI::BRIGHT_CYAN);
+        if (!outputExeFile.empty() && std::filesystem::exists(outputExeFile)) {
+            color.println("Output executable: " + outputExeFile, CLI::BRIGHT_GREEN);
+        }
         color.println("Obfuscation cycles: " + std::to_string(cycles), CLI::BRIGHT_YELLOW);
         color.println("Bogus code percentage: " + std::to_string(bogusPercent) + "%", CLI::BRIGHT_MAGENTA);
         color.println("Fake loops: " + std::to_string(fakeLoops), CLI::BRIGHT_RED);
@@ -1319,8 +1605,12 @@ int cleanInteractiveMode() {
         
         printCleanSuccessMessage("Obfuscation completed successfully!");
         
-        color.println("Output file: " + outputFile, CLI::BRIGHT_CYAN);
-        color.println("Report: obfuscation_report.txt", CLI::BRIGHT_CYAN);
+        if (!outputExeFile.empty() && std::filesystem::exists(outputExeFile)) {
+            color.println("Final executable: " + outputExeFile, CLI::BRIGHT_GREEN);
+        } else {
+            color.println("Obfuscated IR: " + outputFile, CLI::BRIGHT_CYAN);
+        }
+        color.println("Report: " + reportPath, CLI::BRIGHT_CYAN);
         
         // Ask if user wants to continue
         std::cout << "\n";
@@ -1344,6 +1634,146 @@ int interactiveMode() {
     return cleanInteractiveMode();
 }
 
+// Helper function to check if file is C/C++ source
+static bool isSourceFile(const std::string& filename) {
+    std::filesystem::path path(filename);
+    std::string ext = path.extension().string();
+    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+    return ext == ".c" || ext == ".cpp" || ext == ".cc" || ext == ".cxx" || ext == ".c++";
+}
+
+// Helper function to compile C/C++ to LLVM IR
+static bool compileToLLVMIR(const std::string& sourceFile, const std::string& outputIR, CLI::ColorOutput& color) {
+    color.println("  " + CLI::ARROW + " Compiling C/C++ to LLVM IR...", CLI::CYAN);
+    
+    // Find clang executable
+    std::string clangPath;
+#ifdef _WIN32
+    // Try common Windows paths
+    std::vector<std::string> possiblePaths = {
+        "C:\\Program Files\\LLVM\\bin\\clang.exe",
+        "C:\\Program Files (x86)\\LLVM\\bin\\clang.exe",
+        "clang.exe",
+        "clang"
+    };
+#else
+    std::vector<std::string> possiblePaths = {
+        "/usr/bin/clang",
+        "/usr/local/bin/clang",
+        "clang"
+    };
+#endif
+    
+    bool clangFound = false;
+    for (const auto& path : possiblePaths) {
+        if (std::filesystem::exists(path) || path == "clang" || path == "clang.exe") {
+            clangPath = path;
+            clangFound = true;
+            break;
+        }
+    }
+    
+    if (!clangFound) {
+        color.println("  " + CLI::CROSS + " clang not found! Please install LLVM/Clang.", CLI::RED);
+        color.println("  " + CLI::ARROW + " Download from: https://llvm.org/", CLI::YELLOW);
+        return false;
+    }
+    
+    // Build clang command
+    std::stringstream cmd;
+    #ifdef _WIN32
+    // On Windows, use cmd /c to properly handle paths with spaces
+    cmd << "cmd /c \"\"" << clangPath << "\" -S -emit-llvm \"" << sourceFile << "\" -o \"" << outputIR << "\"\"";
+    #else
+    cmd << "\"" << clangPath << "\" -S -emit-llvm \"" << sourceFile << "\" -o \"" << outputIR << "\"";
+    #endif
+    
+    color.println("  " + CLI::ARROW + " Running: " + cmd.str(), CLI::DIM);
+    
+    // Execute clang
+    int result = std::system(cmd.str().c_str());
+    
+    if (result != 0 || !std::filesystem::exists(outputIR)) {
+        color.println("  " + CLI::CROSS + " Failed to compile C/C++ to LLVM IR", CLI::RED);
+        return false;
+    }
+    
+    color.println("  " + CLI::CHECKMARK + " Compiled to LLVM IR: " + outputIR, CLI::GREEN);
+    return true;
+}
+
+// Helper function to compile LLVM IR to executable
+static bool compileIRToExe(const std::string& irFile, const std::string& outputExe, CLI::ColorOutput& color) {
+    color.println("  " + CLI::ARROW + " Compiling obfuscated IR to executable...", CLI::CYAN);
+    
+    // Find clang executable
+    std::string clangPath;
+#ifdef _WIN32
+    std::vector<std::string> possiblePaths = {
+        "C:\\Program Files\\LLVM\\bin\\clang.exe",
+        "C:\\Program Files (x86)\\LLVM\\bin\\clang.exe",
+        "clang.exe",
+        "clang"
+    };
+#else
+    std::vector<std::string> possiblePaths = {
+        "/usr/bin/clang",
+        "/usr/local/bin/clang",
+        "clang"
+    };
+#endif
+    
+    bool clangFound = false;
+    for (const auto& path : possiblePaths) {
+        if (std::filesystem::exists(path) || path == "clang" || path == "clang.exe") {
+            clangPath = path;
+            clangFound = true;
+            break;
+        }
+    }
+    
+    if (!clangFound) {
+        color.println("  " + CLI::CROSS + " clang not found! Please install LLVM/Clang.", CLI::RED);
+        return false;
+    }
+    
+    // Build clang command for linking
+    std::stringstream cmd;
+    #ifdef _WIN32
+    // On Windows, use cmd /c to properly handle paths with spaces
+    cmd << "cmd /c \"\"" << clangPath << "\" \"" << irFile << "\" -o \"" << outputExe << "\" -lstdc++ -luser32 -lkernel32 -lntdll\"";
+    #else
+    cmd << "\"" << clangPath << "\" \"" << irFile << "\" -o \"" << outputExe << "\" -lstdc++";
+    #endif
+    
+    color.println("  " + CLI::ARROW + " Running: " + cmd.str(), CLI::DIM);
+    
+    // Execute clang
+    int result = std::system(cmd.str().c_str());
+    
+    if (result != 0 || !std::filesystem::exists(outputExe)) {
+        color.println("  " + CLI::CROSS + " Failed to compile IR to executable", CLI::RED);
+        color.println("  " + CLI::ARROW + " Check for compilation errors above", CLI::YELLOW);
+        return false;
+    }
+    
+    // Get file size
+    auto size = std::filesystem::file_size(outputExe);
+    double sizeKB = size / 1024.0;
+    double sizeMB = sizeKB / 1024.0;
+    
+    std::stringstream sizeStr;
+    if (sizeMB >= 1.0) {
+        sizeStr << std::fixed << std::setprecision(2) << sizeMB << " MB";
+    } else {
+        sizeStr << std::fixed << std::setprecision(0) << sizeKB << " KB";
+    }
+    
+    color.println("  " + CLI::CHECKMARK + " Executable created: " + outputExe, CLI::GREEN);
+    color.println("  " + CLI::ARROW + " Size: " + sizeStr.str(), CLI::CYAN);
+    return true;
+}
+
 int main(int argc, char **argv) {
     InitLLVM X(argc, argv);
     
@@ -1357,7 +1787,36 @@ int main(int argc, char **argv) {
     CLI::ColorOutput color;
     
     // Show beautiful banner for command line mode
-        printCleanCommandLineBanner();
+    printCleanCommandLineBanner();
+    
+    // Check if input file exists
+    std::string inputFileStr = InputFilename;
+    std::filesystem::path inputPath(inputFileStr);
+    if (!std::filesystem::exists(inputPath)) {
+        color.println(CLI::CROSS + " Error: Input file not found: " + inputFileStr, CLI::RED);
+        return 1;
+    }
+    
+    std::string actualInputFile = inputFileStr;
+    std::string tempIRFile;
+    bool isSource = isSourceFile(inputFileStr);
+    bool needCleanup = false;
+    
+    // Step 1: If input is C/C++ source, compile to LLVM IR first
+    if (isSource) {
+        color.println(CLI::ARROW + " Detected C/C++ source file", CLI::CYAN);
+        
+        std::filesystem::path sourcePath(inputFileStr);
+        std::string exeDir = getExecutableDirectory();
+        tempIRFile = (std::filesystem::path(exeDir) / (sourcePath.stem().string() + ".ll")).string();
+        
+        if (!compileToLLVMIR(inputFileStr, tempIRFile, color)) {
+            return 1;
+        }
+        
+        actualInputFile = tempIRFile;
+        needCleanup = !KeepIntermediateFiles;
+    }
     
     LLVMContext Context;
     SMDiagnostic Err;
@@ -1366,11 +1825,14 @@ int main(int argc, char **argv) {
     CLI::Spinner spinner;
     spinner.update("Loading module...");
     
-    std::unique_ptr<Module> M = parseIRFile(InputFilename, Err, Context);
+    std::unique_ptr<Module> M = parseIRFile(actualInputFile, Err, Context);
     if (!M) {
         spinner.stop();
         color.println(CLI::CROSS + " Error loading module!", CLI::RED);
         Err.print(argv[0], errs());
+        if (needCleanup && std::filesystem::exists(tempIRFile)) {
+            std::filesystem::remove(tempIRFile);
+        }
         return 1;
     }
     
@@ -1385,10 +1847,10 @@ int main(int argc, char **argv) {
     
     // Configure obfuscation
     ObfuscationConfig config;
-    config.enableControlFlowObfuscation = EnableControlFlow;
-    config.enableStringEncryption = EnableStringEncryption;
-    config.enableBogusCode = EnableBogusCode;
-    config.enableFakeLoops = EnableFakeLoops;
+    config.enableControlFlowObfuscation = EnableControlFlow && !DisableControlFlow;
+    config.enableStringEncryption = EnableStringEncryption && !DisableStringEncryption;
+    config.enableBogusCode = EnableBogusCode && !DisableBogusCode;
+    config.enableFakeLoops = EnableFakeLoops && !DisableFakeLoops;
     config.enableInstructionSubstitution = EnableInstructionSubst;
     config.enableControlFlowFlattening = EnableCFF;
     config.enableMBA = EnableMBA;
@@ -1409,7 +1871,25 @@ int main(int argc, char **argv) {
     config.polymorphicVariants = PolymorphicVariants;
     config.bogusCodePercentage = BogusCodePercentage;
     config.fakeLoopCount = FakeLoopCount;
-    config.outputReportPath = ReportFilename;
+    
+    // Set report path - if not specified, use executable directory
+    std::string reportFileStr = ReportFilename;
+    std::string exeDir = getExecutableDirectory();
+    std::string outputExeFile;  // Will be set if auto-compile is enabled
+    
+    if (reportFileStr.empty()) {
+        // Default to current working directory (more intuitive)
+        config.outputReportPath = (std::filesystem::current_path() / "obfuscation_report.txt").string();
+    } else {
+        // If report path is relative, resolve relative to current working directory
+        std::filesystem::path reportPath(reportFileStr);
+        if (reportPath.is_relative()) {
+            std::filesystem::path cwd = std::filesystem::current_path();
+            config.outputReportPath = (cwd / reportPath).lexically_normal().string();
+        } else {
+            config.outputReportPath = reportFileStr;
+        }
+    }
     
     // Show configuration summary
     color.println("\n" + CLI::DIAMOND + " Configuration:", CLI::BOLD + CLI::CYAN);
@@ -1432,22 +1912,62 @@ int main(int argc, char **argv) {
         color.println("\n" + CLI::CROSS + " Warning: No modifications were made to the module", CLI::YELLOW);
     }
     
-    // Determine output filename
+    // Determine output filename - default to executable directory (reuse exeDir from above)
     std::string outputFile = OutputFilename;
+    
     if (outputFile.empty()) {
-        outputFile = InputFilename;
-        auto hasSuffix = [](const std::string &s, const std::string &suffix) -> bool {
-            return s.size() >= suffix.size() && s.compare(s.size() - suffix.size(), suffix.size(), suffix) == 0;
-        };
-        if (hasSuffix(outputFile, ".ll")) {
-            outputFile = outputFile.substr(0, outputFile.length() - 3) + "_obfuscated.ll";
+        // Get input file name (without directory)
+        std::filesystem::path inputPath(inputFileStr);
+        std::string inputStem = inputPath.stem().string();
+        std::string inputExt = inputPath.extension().string();
+        
+        // Create output filename in executable directory
+        if (inputExt == ".ll" || inputExt == ".bc") {
+            outputFile = (std::filesystem::path(exeDir) / (inputStem + "_obfuscated" + inputExt)).string();
         } else {
-            outputFile += "_obfuscated";
+            outputFile = (std::filesystem::path(exeDir) / (inputStem + "_obfuscated.ll")).string();
+        }
+        
+        // If auto-compile is enabled or input was source file, also set exe output
+        if (AutoCompileToExe || isSource) {
+            outputExeFile = (std::filesystem::path(exeDir) / (inputStem + "_obfuscated.exe")).string();
+        }
+    } else {
+        // If output is specified but relative, resolve relative to current working directory
+        // This allows users to specify paths like "examples/output.ll" from project root
+        std::filesystem::path outputPath(outputFile);
+        if (outputPath.is_relative()) {
+            // Resolve relative to current working directory (not executable directory)
+            std::filesystem::path cwd = std::filesystem::current_path();
+            outputFile = (cwd / outputPath).lexically_normal().string();
+        }
+        // If output ends with .exe, that's the exe file, IR is .ll
+        if (outputPath.extension().string() == ".exe") {
+            outputExeFile = outputFile;
+            std::filesystem::path irPath = outputPath.replace_extension(".ll");
+            if (irPath.is_relative()) {
+                std::filesystem::path cwd = std::filesystem::current_path();
+                outputFile = (cwd / irPath).lexically_normal().string();
+            } else {
+                outputFile = irPath.string();
+            }
         }
     }
     
     // Write obfuscated module
     progressBar.update(90, "Writing output file...");
+    
+    // CRITICAL FIX: Create output directory if it doesn't exist
+    if (!ensureDirectoryExists(outputFile)) {
+        color.println("\n" + CLI::CROSS + " Error creating output directory for: " + outputFile, CLI::RED);
+        return 1;
+    }
+    
+    // CRITICAL FIX: Create report directory if it doesn't exist
+    if (!config.outputReportPath.empty() && !ensureDirectoryExists(config.outputReportPath)) {
+        color.println("\n" + CLI::CROSS + " Error creating report directory for: " + config.outputReportPath, CLI::RED);
+        return 1;
+    }
     
     std::error_code EC;
     raw_fd_ostream OutFile(outputFile, EC);
@@ -1507,9 +2027,15 @@ int main(int argc, char **argv) {
     color.println("╚════════════════════════════════════════════════════════════════════╝", CLI::BLUE);
     
     color.println("\n" + CLI::STAR + " Files:", CLI::BOLD + CLI::CYAN);
-    color.println("  " + CLI::ARROW + " Input file: " + InputFilename, CLI::WHITE);
-    color.println("  " + CLI::ARROW + " Output file: " + outputFile, CLI::WHITE);
-    color.println("  " + CLI::ARROW + " Report file: " + ReportFilename, CLI::WHITE);
+    color.println("  " + CLI::ARROW + " Input file: " + inputFileStr, CLI::WHITE);
+    if (isSource) {
+        color.println("  " + CLI::ARROW + " Intermediate IR: " + actualInputFile, CLI::DIM);
+    }
+    color.println("  " + CLI::ARROW + " Obfuscated IR: " + outputFile, CLI::WHITE);
+    if (!outputExeFile.empty()) {
+        color.println("  " + CLI::ARROW + " Output executable: " + outputExeFile, CLI::CYAN);
+    }
+    color.println("  " + CLI::ARROW + " Report file: " + config.outputReportPath, CLI::WHITE);
     
     color.println("\n" + CLI::STAR + " Metrics:", CLI::BOLD + CLI::CYAN);
     color.println("  " + CLI::CHECKMARK + " Obfuscation cycles: " + std::to_string(obfuscationPass.getTotalObfuscationCycles()), CLI::GREEN);
@@ -1529,6 +2055,35 @@ int main(int argc, char **argv) {
     color.println("\n═══════════════════════════════════════════════════════════════════", CLI::BLUE);
     color.println("  " + CLI::STAR + " Obfuscation completed successfully!", CLI::BOLD + CLI::GREEN);
     color.println("═══════════════════════════════════════════════════════════════════", CLI::BLUE);
+    
+    // Step 3: If auto-compile is enabled or input was source, compile to executable
+    if (!outputExeFile.empty() && (AutoCompileToExe || isSource)) {
+        color.println("\n" + CLI::ARROW + " Compiling to executable...", CLI::CYAN);
+        
+        if (compileIRToExe(outputFile, outputExeFile, color)) {
+            color.println("\n" + CLI::CHECKMARK + " Final executable: " + outputExeFile, CLI::BOLD + CLI::GREEN);
+            
+            // Clean up intermediate IR file if requested
+            if (needCleanup && std::filesystem::exists(tempIRFile)) {
+                std::filesystem::remove(tempIRFile);
+                color.println("  " + CLI::ARROW + " Cleaned up intermediate file: " + tempIRFile, CLI::DIM);
+            }
+            
+            // Optionally clean up obfuscated IR if exe was created
+            if (!KeepIntermediateFiles && std::filesystem::exists(outputExeFile)) {
+                std::filesystem::remove(outputFile);
+                color.println("  " + CLI::ARROW + " Cleaned up obfuscated IR file", CLI::DIM);
+            }
+        } else {
+            color.println("\n" + CLI::ARROW + " Obfuscated IR saved: " + outputFile, CLI::YELLOW);
+            color.println("  " + CLI::ARROW + " You can manually compile it later", CLI::YELLOW);
+        }
+    } else {
+        color.println("\n" + CLI::ARROW + " Obfuscated IR saved: " + outputFile, CLI::CYAN);
+        if (isSource && !AutoCompileToExe) {
+            color.println("  " + CLI::ARROW + " Use --compile flag to auto-compile to executable", CLI::YELLOW);
+        }
+    }
     
     return 0;
 }

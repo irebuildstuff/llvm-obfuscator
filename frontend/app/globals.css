@@ -1,0 +1,34 @@
+@import '../styles/virustotal-theme.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    background-color: var(--vt-bg-primary);
+    color: var(--vt-text-primary);
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+  
+  body {
+    @apply bg-vt-bg-primary text-vt-text-primary;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    min-height: 100vh;
+  }
+  
+  /* Ensure main containers respect theme */
+  main {
+    background-color: var(--vt-bg-primary);
+    color: var(--vt-text-primary);
+  }
+  
+  /* Light mode only */
+  color-scheme: light;
+}
+
+@layer components {
+  .vt-container {
+    @apply max-w-vt-container mx-auto px-6;
+  }
+}
+

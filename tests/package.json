@@ -1,0 +1,19 @@
+{
+  "name": "llvm-obfuscator-tests",
+  "version": "1.0.0",
+  "description": "Test suite for CLI vs Web App verification",
+  "type": "module",
+  "main": "run-tests.js",
+  "scripts": {
+    "test": "node run-tests.js",
+    "test:techniques": "node run-tests.js --techniques",
+    "test:presets": "node run-tests.js --presets",
+    "test:pipeline": "node run-tests.js --pipeline"
+  },
+  "dependencies": {
+    "form-data": "^4.0.0",
+    "node-fetch": "^3.3.2"
+  }
+}
+
+

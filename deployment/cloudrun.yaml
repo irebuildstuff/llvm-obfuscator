@@ -1,0 +1,72 @@
+# Cloud Run service configuration for backend
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: llvm-obfuscator-backend
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "1"
+        autoscaling.knative.dev/maxScale: "10"
+        run.googleapis.com/cpu-throttling: "false"
+    spec:
+      containerConcurrency: 10
+      timeoutSeconds: 300
+      containers:
+      - image: IMAGE_URL_BACKEND
+        ports:
+        - name: http1
+          containerPort: 3001
+        env:
+        - name: PORT
+          value: "3001"
+        - name: NODE_ENV
+          value: "production"
+        - name: CLANG_PATH
+          value: "clang"
+        resources:
+          limits:
+            cpu: "2"
+            memory: 2Gi
+          requests:
+            cpu: "1"
+            memory: 1Gi
+---
+# Cloud Run service configuration for frontend
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: llvm-obfuscator-frontend
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "1"
+        autoscaling.knative.dev/maxScale: "5"
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 60
+      containers:
+      - image: IMAGE_URL_FRONTEND
+        ports:
+        - name: http1
+          containerPort: 3000
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: NEXT_PUBLIC_API_URL
+          value: "https://llvm-obfuscator-backend-REGION-PROJECT_ID.a.run.app"
+        resources:
+          limits:
+            cpu: "1"
+            memory: 512Mi
+          requests:
+            cpu: "0.5"
+            memory: 256Mi
+
+

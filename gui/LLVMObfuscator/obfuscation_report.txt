@@ -1,0 +1,162 @@
+===============================================================================
+                    LLVM CODE OBFUSCATION REPORT
+===============================================================================
+
+Report Generated: Fri Oct  3 05:02:11 2025
+
+===============================================================================
+                        INPUT PARAMETERS
+===============================================================================
+
+[Basic Configuration]
+  Obfuscation Cycles Requested:        3
+  Bogus Code Percentage:               30%
+  Fake Loop Count per Function:        5
+  MBA Complexity Level:                3
+  Flattening Probability:              80%
+  Virtualization Level:                2
+  Polymorphic Variants:                5
+
+[Enabled Obfuscation Techniques]
+  Control Flow Obfuscation:            ENABLED
+  String Encryption:                   ENABLED
+  Bogus Code Generation:               ENABLED
+  Fake Loop Insertion:                 ENABLED
+  Instruction Substitution:            DISABLED
+  Control Flow Flattening:             DISABLED
+  Mixed Boolean Arithmetic (MBA):      DISABLED
+  Anti-Debug Protection:               DISABLED
+  Indirect Function Calls:             DISABLED
+  Constant Obfuscation:                DISABLED
+  Anti-Tamper Protection:              DISABLED
+  Code Virtualization:                 DISABLED
+  Polymorphic Code Generation:         DISABLED
+  Anti-Analysis Detection:             DISABLED
+  Metamorphic Transformations:         DISABLED
+  Dynamic Obfuscation:                 DISABLED
+
+===============================================================================
+                      OUTPUT FILE ATTRIBUTES
+===============================================================================
+
+[Module Information]
+  Module Name:                         C:\Users\Akash\Desktop\New folder (8)\test_program.ll
+  Target Triple:                       x86_64-pc-windows-msvc19.44.35217
+  Data Layout:                         e-m:w-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128
+
+[Code Statistics]
+  Total Functions:                     11
+  Total Basic Blocks:                  44
+  Total Instructions:                  3709
+  Global Variables:                    3
+  Named Metadata Nodes:                3
+
+[Obfuscation Methods Applied]
+  1. Control Flow Obfuscation (Opaque Predicates)
+  2. String Encryption (XOR Cipher)
+  3. Bogus Code Insertion
+  4. Fake Loop Injection
+
+===============================================================================
+                      OBFUSCATION METRICS
+===============================================================================
+
+[Obfuscation Cycles]
+  Total Cycles Completed:              3 / 3
+
+[Bogus Code Generation]
+  Total Bogus Instructions:            549
+  Bogus Code Percentage:               30%
+  Estimated Code Bloat:                ~14% increase
+
+[String Obfuscation]
+  Strings Encrypted:                   1
+  Encryption Method:                   XOR with key 0x42
+  Runtime Decryption:                  Enabled
+
+[Control Flow Modifications]
+  Fake Loops Inserted:                 15
+  Control Flow Obfuscations:           18
+  Functions Flattened:                 0
+  Opaque Predicates Added:             18
+
+[Instruction-Level Obfuscation]
+  Instruction Substitutions:           0
+  MBA Transformations:                 0
+  Constants Obfuscated:                0
+
+[Advanced Protection]
+  Anti-Debug Checks:                   0
+  Anti-Analysis Checks:                0
+  Indirect Calls Created:              0
+  Functions Virtualized:               0
+  Polymorphic Variants:                0
+  Metamorphic Transformations:         0
+  Dynamic Obfuscations:                0
+
+===============================================================================
+                      DETAILED BREAKDOWN
+===============================================================================
+
+[Bogus Code Details]
+  - Inserted meaningless arithmetic operations to confuse disassemblers
+  - Each basic block contains 30% additional bogus instructions
+  - Operations include: dummy allocations, dead stores, unused calculations
+  - Total bogus instructions: 549
+
+[String Encryption Details]
+  - Encryption algorithm: XOR cipher with static key
+  - Encryption key: 0x42 (modifiable)
+  - Strings are encrypted at compile-time
+  - Decryption occurs at program startup via global constructor
+  - Total strings processed: 1
+
+[Control Flow Obfuscation Details]
+  - Technique: Opaque predicate insertion
+  - Predicates use algebraic identities that are always true/false
+  - Example: ((n * (n + 1)) % 2) == 0 (always true)
+  - Total opaque predicates: 18
+  - Makes control flow analysis extremely difficult
+
+[Fake Loop Details]
+  - Inserted 15 fake loops that never execute
+  - Loop conditions are always false to prevent execution
+  - Adds control flow complexity without runtime overhead
+  - Confuses loop detection algorithms in analysis tools
+
+===============================================================================
+                      OBFUSCATION EFFECTIVENESS
+===============================================================================
+
+[Overall Assessment]
+  Obfuscation Strength:                100%
+  Code Complexity Increase:            Very High
+  Reverse Engineering Difficulty:      Extreme
+
+[Protection Against]
+  Static Analysis Tools:               Strong
+  Dynamic Analysis/Debugging:          Weak
+  String Extraction:                   Strong
+  Decompilers:                         Moderate
+  Pattern Matching:                    Weak
+  Automated Analysis:                  Weak
+
+[Key Benefits]
+  * Code complexity significantly increased
+  * Control flow graph is obfuscated and difficult to trace
+  * String literals are encrypted and protected
+  * Bogus code confuses disassemblers and decompilers
+  * Fake control flow paths mislead analysis tools
+  * Multiple obfuscation layers provide defense in depth
+
+===============================================================================
+                            SUMMARY
+===============================================================================
+
+Total Transformations Applied:         565
+Obfuscation Cycles Executed:           3
+Report Location:                       C:\Users\Akash\Desktop\New folder (8)\gui\LLVMObfuscator\obfuscation_report.txt
+
+===============================================================================
+                       REPORT COMPLETED
+===============================================================================

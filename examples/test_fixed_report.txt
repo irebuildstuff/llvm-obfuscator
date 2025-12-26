@@ -1,0 +1,59 @@
+===============================================================================
+                    LLVM CODE OBFUSCATION REPORT
+===============================================================================
+
+Generated: Fri Dec 26 03:06:21 2025
+
+
+===============================================================================
+                              SUMMARY
+===============================================================================
+
+Module: examples\test_new_features.ll
+Functions: 13 | Blocks: 120 | Instructions: 1088
+Obfuscation Cycles: 1 / 1
+
+Techniques Applied:
+  ✓ Control Flow Obfuscation
+  ✓ String Encryption
+  ✓ Bogus Code Insertion
+  ✓ Fake Loop Injection
+
+===============================================================================
+                            METRICS
+===============================================================================
+
+String Encryption:
+  • Strings encrypted: 6
+  • Method: Per-string unique keys (2-4 bytes, position-based XOR)
+  • Runtime decryption: Yes
+
+Control Flow Obfuscation:
+  • Opaque predicates: 25
+  • Formula: (n² + n) % 2 == 0 (random n values)
+  • Dead code blocks: Added for misdirection
+
+Fake Loops:
+  • Loops inserted: 15
+  • Patterns: 3 types (counter < 0, counter >= MAX_INT, !opaque)
+  • Distribution: Randomly scattered
+
+Bogus Code:
+  • Instructions added: 37
+  • Percentage: 30%
+
+===============================================================================
+                          EFFECTIVENESS
+===============================================================================
+
+Total Transformations: 83
+Obfuscation Strength: 100%
+Reverse Engineering Difficulty: Extreme
+
+Protection Against:
+  • Static Analysis: Strong
+  • String Extraction: Strong
+  • Decompilers: Moderate to Strong
+  • Pattern Matching: Moderate
+
+Report Location: C:\Users\Akash\Desktop\New folder (8)\examples\test_fixed_report.txt
