@@ -632,7 +632,6 @@ bool ObfuscationPass::insertBogusCode(Function &F) {
         // PHI nodes must be at the top of the block
         Instruction *FirstNonPHI = BB.getFirstNonPHI();
         if (!FirstNonPHI) continue; // Skip if block has no non-PHI instructions
-        IRBuilder<> Builder(FirstNonPHI);
         
         // Optimized: Reduced count but more strategic placement
         // Use half the percentage for size reduction while maintaining effectiveness
