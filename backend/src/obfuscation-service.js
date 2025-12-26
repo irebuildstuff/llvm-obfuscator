@@ -359,7 +359,8 @@ async function compileToLLVMIR(sourcePath, outputPath) {
         'The obfuscation service runs on Linux and cannot compile Windows-specific code.\n\n' +
         'Solutions:\n' +
         '1. Compile to LLVM IR locally on Windows, then upload the .ll file:\n' +
-        '   clang -S -emit-llvm -fno-exceptions your_code.cpp -o your_code.ll\n' +
+        '   clang -S -emit-llvm -fno-exceptions -opaque-pointers=0 your_code.cpp -o your_code.ll\n' +
+        '   (The -opaque-pointers=0 flag ensures compatibility with LLVM 14)\n' +
         '   Then upload the .ll file directly to the obfuscator.\n\n' +
         '2. Remove Windows-specific includes and use cross-platform alternatives:\n' +
         '   - Replace Windows.h with standard C++ libraries\n' +
@@ -430,7 +431,8 @@ async function compileToLLVMIR(sourcePath, outputPath) {
         'Windows-specific headers detected. The obfuscation service runs on Linux.\n\n' +
         'Solutions:\n' +
         '1. Compile to LLVM IR locally on Windows, then upload the .ll file:\n' +
-        '   clang -S -emit-llvm -fno-exceptions your_code.cpp -o your_code.ll\n' +
+        '   clang -S -emit-llvm -fno-exceptions -opaque-pointers=0 your_code.cpp -o your_code.ll\n' +
+        '   (The -opaque-pointers=0 flag ensures compatibility with LLVM 14)\n' +
         '   Then upload the .ll file directly to the obfuscator.\n\n' +
         '2. Remove Windows-specific includes (Windows.h, etc.)\n' +
         '3. Use cross-platform C++ standard library instead\n' +
