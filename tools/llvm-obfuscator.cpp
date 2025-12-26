@@ -373,7 +373,7 @@ namespace CLI {
                 color.println("");
                 
                 for (size_t i = 0; i < options.size(); ++i) {
-                    if (i == selected) {
+                    if (static_cast<int>(i) == selected) {
                         color.print("  " + ARROW + " ", GREEN);
                         color.println(options[i], BOLD + BG_BLUE);
                     } else {
@@ -387,13 +387,17 @@ namespace CLI {
                 if (ch == 224) { // Arrow key
                     ch = _getch();
                     if (ch == 72 && selected > 0) selected--; // Up
-                    if (ch == 80 && selected < options.size() - 1) selected++; // Down
+                    if (ch == 80 && static_cast<size_t>(selected) < options.size() - 1) selected++; // Down
                 } else if (ch == 13) { // Enter
                     return selected;
                 } else if (ch == 27) { // Esc
                     return -1;
                 }
             }
+#else
+            // On non-Windows, use Unix implementation
+            return showUnix();
+#endif
         }
         
         int showUnix() {
