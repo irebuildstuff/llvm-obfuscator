@@ -43,14 +43,14 @@ const upload = multer({
     fileSize: MAX_FILE_SIZE
   },
   fileFilter: (req, file, cb) => {
-    // Only allow C/C++ source files
-    const allowedExtensions = ['.c', '.cpp', '.cc', '.cxx', '.c++'];
+    // Allow C/C++ source files and LLVM IR files
+    const allowedExtensions = ['.c', '.cpp', '.cc', '.cxx', '.c++', '.ll'];
     const ext = file.originalname.toLowerCase().substring(file.originalname.lastIndexOf('.'));
     
     if (allowedExtensions.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error(`Invalid file type. Only C/C++ source files are allowed. Got: ${ext}`), false);
+      cb(new Error(`Invalid file type. Only C/C++ source files (.c, .cpp) or LLVM IR files (.ll) are allowed. Got: ${ext}`), false);
     }
   }
 });

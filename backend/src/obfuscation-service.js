@@ -118,13 +118,22 @@ export async function obfuscateFile(inputFilePath, originalFilename, config) {
  */
 async function runObfuscationPipeline(jobId, inputFilePath, originalFilename, config) {
   try {
-    await updateJob(jobId, { progress: 10, message: 'Compiling C/C++ to LLVM IR...' });
-
-    // Step 1: Compile C/C++ to LLVM IR
-    const irFilename = basename(originalFilename, getExtension(originalFilename)) + '.ll';
-    const irPath = join(OUTPUT_DIR, `${jobId}-${irFilename}`);
-
-    await compileToLLVMIR(inputFilePath, irPath);
+    const inputExt = getExtension(originalFilename).toLowerCase();
+    const isLLVMIR = inputExt === '.ll';
+    
+    let irPath;
+    
+    if (isLLVMIR) {
+      // File is already LLVM IR, skip compilation
+      await updateJob(jobId, { progress: 10, message: 'Using uploaded LLVM IR file...' });
+      irPath = inputFilePath; // Use the uploaded file directly
+    } else {
+      // Step 1: Compile C/C++ to LLVM IR
+      await updateJob(jobId, { progress: 10, message: 'Compiling C/C++ to LLVM IR...' });
+      const irFilename = basename(originalFilename, getExtension(originalFilename)) + '.ll';
+      irPath = join(OUTPUT_DIR, `${jobId}-${irFilename}`);
+      await compileToLLVMIR(inputFilePath, irPath);
+    }
 
     await updateJob(jobId, { 
       irPath,
@@ -266,12 +275,14 @@ async function compileToLLVMIR(sourcePath, outputPath) {
         'Windows-specific headers detected (e.g., Windows.h).\n' +
         'The obfuscation service runs on Linux and cannot compile Windows-specific code.\n\n' +
         'Solutions:\n' +
-        '1. Remove Windows-specific includes and use cross-platform alternatives:\n' +
+        '1. Compile to LLVM IR locally on Windows, then upload the .ll file:\n' +
+        '   clang -S -emit-llvm -fno-exceptions your_code.cpp -o your_code.ll\n' +
+        '   Then upload the .ll file directly to the obfuscator.\n\n' +
+        '2. Remove Windows-specific includes and use cross-platform alternatives:\n' +
         '   - Replace Windows.h with standard C++ libraries\n' +
         '   - Use std::thread instead of Windows threading APIs\n' +
-        '   - Use std::filesystem instead of Windows file APIs\n' +
-        '2. Use the CLI tool locally on Windows for Windows-specific code\n' +
-        '3. Compile to LLVM IR locally first, then upload the .ll file\n\n' +
+        '   - Use std::filesystem instead of Windows file APIs\n\n' +
+        '3. Use the CLI tool locally on Windows for Windows-specific code\n\n' +
         'Common replacements:\n' +
         '  - Windows.h → Remove or use cross-platform libraries\n' +
         '  - CreateThread() → std::thread\n' +
@@ -318,10 +329,12 @@ async function compileToLLVMIR(sourcePath, outputPath) {
         throw new Error(
           'Windows-specific headers detected. The obfuscation service runs on Linux.\n\n' +
           'Solutions:\n' +
-          '1. Remove Windows-specific includes (Windows.h, etc.)\n' +
-          '2. Use cross-platform C++ standard library instead\n' +
-          '3. Use the CLI tool locally on Windows\n' +
-          '4. Compile to LLVM IR locally first, then upload the .ll file\n\n' +
+          '1. Compile to LLVM IR locally on Windows, then upload the .ll file:\n' +
+          '   clang -S -emit-llvm -fno-exceptions your_code.cpp -o your_code.ll\n' +
+          '   Then upload the .ll file directly to the obfuscator.\n\n' +
+          '2. Remove Windows-specific includes (Windows.h, etc.)\n' +
+          '3. Use cross-platform C++ standard library instead\n' +
+          '4. Use the CLI tool locally on Windows\n\n' +
           `Original error: ${stderr}`
         );
       }
@@ -333,10 +346,12 @@ async function compileToLLVMIR(sourcePath, outputPath) {
       throw new Error(
         'Windows-specific headers detected. The obfuscation service runs on Linux.\n\n' +
         'Solutions:\n' +
-        '1. Remove Windows-specific includes (Windows.h, etc.)\n' +
-        '2. Use cross-platform C++ standard library instead\n' +
-        '3. Use the CLI tool locally on Windows\n' +
-        '4. Compile to LLVM IR locally first, then upload the .ll file\n\n' +
+        '1. Compile to LLVM IR locally on Windows, then upload the .ll file:\n' +
+        '   clang -S -emit-llvm -fno-exceptions your_code.cpp -o your_code.ll\n' +
+        '   Then upload the .ll file directly to the obfuscator.\n\n' +
+        '2. Remove Windows-specific includes (Windows.h, etc.)\n' +
+        '3. Use cross-platform C++ standard library instead\n' +
+        '4. Use the CLI tool locally on Windows\n\n' +
         `Original error: ${error.message}`
       );
     }
