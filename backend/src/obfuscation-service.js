@@ -137,13 +137,42 @@ async function runObfuscationPipeline(jobId, inputFilePath, originalFilename, co
 
     await updateJob(jobId, { 
       irPath,
+      progress: 20,
+      message: 'Checking IR format compatibility...' 
+    });
+
+    // Step 1.3: Check for opaque pointers and convert if needed
+    let processedIrPath = irPath;
+    if (detectOpaquePointers(irPath)) {
+      await updateJob(jobId, { 
+        progress: 22,
+        message: 'Converting opaque pointers to typed pointers...' 
+      });
+      const convertedPath = await convertOpaquePointers(irPath, jobId);
+      if (convertedPath) {
+        processedIrPath = convertedPath;
+      } else {
+        throw new Error(
+          'Opaque pointers detected in LLVM IR. The obfuscator (LLVM 14) requires typed pointers.\n\n' +
+          'Solutions:\n' +
+          '1. Compile with -opaque-pointers=0 flag:\n' +
+          '   clang -S -emit-llvm -fno-exceptions -opaque-pointers=0 your_code.cpp -o your_code.ll\n\n' +
+          '2. Use an older LLVM version (14 or earlier) to compile:\n' +
+          '   clang-14 -S -emit-llvm -fno-exceptions your_code.cpp -o your_code.ll\n\n' +
+          '3. Use the CLI tool locally which may support your LLVM version'
+        );
+      }
+    }
+
+    await updateJob(jobId, { 
+      irPath: processedIrPath,
       progress: 25,
       message: 'Stripping exception handling from IR...' 
     });
 
     // Step 1.5: Strip exception handling before obfuscation to avoid breaking it
-    const cleanedIrPath = await stripExceptionHandling(irPath, jobId);
-    const irToObfuscate = cleanedIrPath || irPath;
+    const cleanedIrPath = await stripExceptionHandling(processedIrPath, jobId);
+    const irToObfuscate = cleanedIrPath || processedIrPath;
 
     await updateJob(jobId, { 
       progress: 30,
@@ -199,6 +228,60 @@ async function runObfuscationPipeline(jobId, inputFilePath, originalFilename, co
     });
     throw error;
   }
+}
+
+/**
+ * Check if LLVM IR uses opaque pointers
+ */
+function detectOpaquePointers(irPath) {
+  try {
+    const content = readFileSync(irPath, 'utf8');
+    // Check for opaque pointer syntax: "ptr" type
+    return /:\s*ptr\b/.test(content) || /type\s*{\s*ptr/.test(content);
+  } catch (err) {
+    return false;
+  }
+}
+
+/**
+ * Convert opaque pointers to typed pointers using opt
+ */
+async function convertOpaquePointers(irPath, jobId) {
+  const isWindows = process.platform === 'win32';
+  const optPath = process.env.OPT_PATH || (isWindows ? 'C:\\Program Files\\LLVM\\bin\\opt.exe' : 'opt');
+  
+  if (!existsSync(optPath)) {
+    console.log('opt not found, cannot convert opaque pointers');
+    return null;
+  }
+
+  try {
+    const convertedPath = join(OUTPUT_DIR, `${jobId}-${basename(irPath, '.ll')}_typed.ll`);
+    // Use opt to load and write IR, which may help with compatibility
+    // Note: LLVM 14 opt may not fully support opaque->typed conversion
+    // But we can try using -opaque-pointers=0 if supported
+    const command = isWindows
+      ? `cmd /c ""${optPath}" -opaque-pointers=0 "${irPath}" -S -o "${convertedPath}" 2>&1 || "${optPath}" "${irPath}" -S -o "${convertedPath}""`
+      : `"${optPath}" -opaque-pointers=0 "${irPath}" -S -o "${convertedPath}" 2>&1 || "${optPath}" "${irPath}" -S -o "${convertedPath}"`;
+    
+    console.log('Converting opaque pointers:', command);
+    const { stdout, stderr } = await execAsync(command);
+    
+    if (existsSync(convertedPath)) {
+      // Check if conversion actually worked
+      const convertedContent = readFileSync(convertedPath, 'utf8');
+      if (!detectOpaquePointers(convertedPath)) {
+        console.log('Opaque pointers converted successfully');
+        return convertedPath;
+      } else {
+        console.warn('Conversion did not remove opaque pointers');
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to convert opaque pointers:', error.message);
+  }
+  
+  return null;
 }
 
 /**
