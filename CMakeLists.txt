@@ -26,31 +26,58 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # Find required dependencies before LLVM
 # LLVM requires ZLIB::ZLIB target, so we must find it first
-# Try CONFIG mode first (modern CMake), then fallback to module mode
-find_package(ZLIB QUIET CONFIG)
-if(NOT TARGET ZLIB::ZLIB)
-    # CONFIG mode didn't work or didn't create target, try module mode
-    find_package(ZLIB REQUIRED)
-    # Create ZLIB::ZLIB target if module mode didn't create it
-    if(NOT TARGET ZLIB::ZLIB)
+# Try to find ZLIB using pkg-config first (most reliable on Debian/Ubuntu)
+find_package(PkgConfig QUIET)
+if(PkgConfig_FOUND)
+    pkg_check_modules(ZLIB_PKG QUIET zlib)
+    if(ZLIB_PKG_FOUND)
+        message(STATUS "Found ZLIB via pkg-config: ${ZLIB_PKG_LIBRARY_DIRS}")
         add_library(ZLIB::ZLIB INTERFACE IMPORTED)
-        if(ZLIB_INCLUDE_DIRS)
+        if(ZLIB_PKG_INCLUDE_DIRS)
             set_target_properties(ZLIB::ZLIB PROPERTIES
-                INTERFACE_INCLUDE_DIRECTORIES "${ZLIB_INCLUDE_DIRS}"
+                INTERFACE_INCLUDE_DIRECTORIES "${ZLIB_PKG_INCLUDE_DIRS}"
             )
         endif()
-        if(ZLIB_LIBRARIES)
+        if(ZLIB_PKG_LIBRARIES)
             set_target_properties(ZLIB::ZLIB PROPERTIES
-                INTERFACE_LINK_LIBRARIES "${ZLIB_LIBRARIES}"
+                INTERFACE_LINK_LIBRARIES "${ZLIB_PKG_LIBRARIES}"
             )
-        else()
-            # Fallback: link against z library directly
-            find_library(ZLIB_LIBRARY z)
-            if(ZLIB_LIBRARY)
+        endif()
+    endif()
+endif()
+
+# If pkg-config didn't work, try CMake's FindZLIB
+if(NOT TARGET ZLIB::ZLIB)
+    find_package(ZLIB QUIET)
+    if(ZLIB_FOUND)
+        message(STATUS "Found ZLIB via CMake: ${ZLIB_LIBRARIES}")
+        if(NOT TARGET ZLIB::ZLIB)
+            add_library(ZLIB::ZLIB INTERFACE IMPORTED)
+            if(ZLIB_INCLUDE_DIRS)
                 set_target_properties(ZLIB::ZLIB PROPERTIES
-                    INTERFACE_LINK_LIBRARIES "${ZLIB_LIBRARY}"
+                    INTERFACE_INCLUDE_DIRECTORIES "${ZLIB_INCLUDE_DIRS}"
                 )
             endif()
+            if(ZLIB_LIBRARIES)
+                set_target_properties(ZLIB::ZLIB PROPERTIES
+                    INTERFACE_LINK_LIBRARIES "${ZLIB_LIBRARIES}"
+                )
+            endif()
+        endif()
+    else()
+        # Last resort: find manually
+        message(STATUS "ZLIB not found via pkg-config or CMake, trying manual search...")
+        find_path(ZLIB_INCLUDE_DIR zlib.h PATHS /usr/include /usr/local/include)
+        find_library(ZLIB_LIBRARY z PATHS /usr/lib /usr/lib/x86_64-linux-gnu /usr/local/lib)
+        if(ZLIB_INCLUDE_DIR AND ZLIB_LIBRARY)
+            message(STATUS "Found ZLIB manually: ${ZLIB_INCLUDE_DIR}, ${ZLIB_LIBRARY}")
+            add_library(ZLIB::ZLIB INTERFACE IMPORTED)
+            set_target_properties(ZLIB::ZLIB PROPERTIES
+                INTERFACE_INCLUDE_DIRECTORIES "${ZLIB_INCLUDE_DIR}"
+                INTERFACE_LINK_LIBRARIES "${ZLIB_LIBRARY}"
+            )
+        else()
+            message(FATAL_ERROR "ZLIB not found! Please install zlib1g-dev package.")
         endif()
     endif()
 endif()

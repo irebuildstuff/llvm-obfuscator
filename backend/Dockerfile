@@ -41,6 +41,14 @@ RUN mkdir -p cmake && \
 RUN echo "=== System Info ===" && \
     cat /etc/os-release && \
     echo "" && \
+    echo "=== Checking ZLIB Installation ===" && \
+    dpkg -l | grep -i zlib && \
+    echo "" && \
+    echo "=== ZLIB Files ===" && \
+    find /usr -name "zlib.h" 2>/dev/null | head -5 && \
+    find /usr -name "libz.so*" 2>/dev/null | head -5 && \
+    find /usr/lib -name "*zlib*" 2>/dev/null | head -10 && \
+    echo "" && \
     echo "=== LLVM Packages ===" && \
     dpkg -l | grep -i llvm && \
     echo "" && \
