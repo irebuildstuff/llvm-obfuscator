@@ -3178,7 +3178,7 @@ void ObfuscationPass::insertIntegrityCheck(Module &M, Function *F) {
     
     // CRITICAL FIX: Check if there's a next block before proceeding
     // If Entry is the only block, we need a different approach
-    BasicBlock *NextBlock = Entry.getNextNode();
+    // BasicBlock *NextBlock = Entry.getNextNode(); // Unused, removed to fix warning
     
     // Calculate simple checksum of function instructions
     unsigned checksum = 0;
