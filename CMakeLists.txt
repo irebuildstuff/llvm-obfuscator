@@ -25,17 +25,33 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # Find required dependencies before LLVM
-# Try to find ZLIB using CONFIG mode first (modern CMake), fallback to module mode
+# LLVM requires ZLIB::ZLIB target, so we must find it first
+# Try CONFIG mode first (modern CMake), then fallback to module mode
 find_package(ZLIB QUIET CONFIG)
-if(NOT ZLIB_FOUND)
+if(NOT TARGET ZLIB::ZLIB)
+    # CONFIG mode didn't work or didn't create target, try module mode
     find_package(ZLIB REQUIRED)
-    # Create imported target if it doesn't exist (older CMake versions)
+    # Create ZLIB::ZLIB target if module mode didn't create it
     if(NOT TARGET ZLIB::ZLIB)
         add_library(ZLIB::ZLIB INTERFACE IMPORTED)
-        set_target_properties(ZLIB::ZLIB PROPERTIES
-            INTERFACE_INCLUDE_DIRECTORIES "${ZLIB_INCLUDE_DIRS}"
-            INTERFACE_LINK_LIBRARIES "${ZLIB_LIBRARIES}"
-        )
+        if(ZLIB_INCLUDE_DIRS)
+            set_target_properties(ZLIB::ZLIB PROPERTIES
+                INTERFACE_INCLUDE_DIRECTORIES "${ZLIB_INCLUDE_DIRS}"
+            )
+        endif()
+        if(ZLIB_LIBRARIES)
+            set_target_properties(ZLIB::ZLIB PROPERTIES
+                INTERFACE_LINK_LIBRARIES "${ZLIB_LIBRARIES}"
+            )
+        else()
+            # Fallback: link against z library directly
+            find_library(ZLIB_LIBRARY z)
+            if(ZLIB_LIBRARY)
+                set_target_properties(ZLIB::ZLIB PROPERTIES
+                    INTERFACE_LINK_LIBRARIES "${ZLIB_LIBRARY}"
+                )
+            endif()
+        endif()
     endif()
 endif()
 
