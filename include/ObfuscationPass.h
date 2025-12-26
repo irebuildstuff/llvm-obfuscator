@@ -315,7 +315,7 @@ public:
     int getTotalMetamorphicTransformations() const { return totalMetamorphicTransformations; }
     int getTotalDynamicObfuscations() const { return totalDynamicObfuscations; }
 
-    void getAnalysisUsage(AnalysisUsage &AU) const override {
+    void getAnalysisUsage([[maybe_unused]] AnalysisUsage &AU) const override {
         // We heavily modify the CFG, so we don't preserve anything
         // This is critical for correctness with other LLVM passes
     }

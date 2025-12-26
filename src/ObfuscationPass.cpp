@@ -492,7 +492,7 @@ bool ObfuscationPass::obfuscateControlFlow(Function &F) {
     // This creates a maze-like structure
     // AGGRESSIVE: Allow more blocks for main function
     int maxBlocks = (F.getName() == "main" || F.getName().startswith("_main")) ? 50 : 20;
-    if (modified && F.size() < maxBlocks) {
+    if (modified && static_cast<int>(F.size()) < maxBlocks) {
         std::vector<BasicBlock*> newBlocksToProcess;
         for (BasicBlock &BB : F) {
             if (BB.size() >= 3 && !BB.getName().startswith("obf_") && !BB.getName().startswith("fake_")) {
@@ -613,9 +613,9 @@ bool ObfuscationPass::insertBogusCode(Function &F) {
         BasicBlock &BB = F.getEntryBlock();
         if (BB.size() > 0) {
             // CRITICAL FIX: Insert after PHI nodes
-            BasicBlock::iterator InsertPoint = BB.getFirstNonPHIIt();
-            if (InsertPoint == BB.end()) return false; // No non-PHI instructions
-            IRBuilder<> Builder(&BB, InsertPoint);
+            Instruction *FirstNonPHI = BB.getFirstNonPHI();
+            if (!FirstNonPHI) return false; // No non-PHI instructions
+            IRBuilder<> Builder(FirstNonPHI);
             // Add minimal opaque predicate-based bogus code
             Value *dummy = Builder.CreateAlloca(Type::getInt1Ty(F.getContext()));
             Value *opaque = createOpaquePredicate(Builder);
@@ -630,8 +630,9 @@ bool ObfuscationPass::insertBogusCode(Function &F) {
         
         // CRITICAL FIX: Get insertion point after PHI nodes
         // PHI nodes must be at the top of the block
-        BasicBlock::iterator InsertPoint = BB.getFirstNonPHIIt();
-        if (InsertPoint == BB.end()) continue; // Skip if block has no non-PHI instructions
+        Instruction *FirstNonPHI = BB.getFirstNonPHI();
+        if (!FirstNonPHI) continue; // Skip if block has no non-PHI instructions
+        IRBuilder<> Builder(FirstNonPHI);
         
         // Optimized: Reduced count but more strategic placement
         // Use half the percentage for size reduction while maintaining effectiveness
@@ -1783,7 +1784,7 @@ Function* ObfuscationPass::createRC4DecryptFunction(Module &M) {
     B.CreateStore(JNew2, JVar);
     
     // Swap S[k] and S[j]
-    Value *J_32 = B.CreateZExt(JNew2, Int32Ty);
+    // Value *J_32 = B.CreateZExt(JNew2, Int32Ty); // Unused, removed
     Value *J_64 = B.CreateZExt(JNew2, Type::getInt64Ty(Ctx));
     Value *SPtrJ = B.CreateInBoundsGEP(SArrayTy, SArray, 
         {ConstantInt::get(Int32Ty, 0), J_64});
@@ -2173,7 +2174,7 @@ bool ObfuscationPass::flattenControlFlow(Function &F) {
             Term->eraseFromParent();
         } else if (SwitchInst *SI = dyn_cast<SwitchInst>(Term)) {
             // Handle switch statements
-            Value *SwitchCond = SI->getCondition();
+            // Value *SwitchCond = SI->getCondition(); // Unused, removed
             
             // Create a new switch in terms of states
             BasicBlock *DefaultDest = SI->getDefaultDest();
@@ -3552,7 +3553,7 @@ FunctionAnalysis ObfuscationPass::analyzeFunction(Function &F) {
     
     // Count callers
     analysis.callFrequency = 0;
-    for (User */*U*/ : F.users()) {
+    for ([[maybe_unused]] User *U : F.users()) {
         analysis.callFrequency++;
     }
     
