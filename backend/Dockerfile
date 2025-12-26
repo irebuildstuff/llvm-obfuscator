@@ -68,7 +68,13 @@ RUN echo "=== System Info ===" && \
         -DCMAKE_VERBOSE_MAKEFILE=ON || (echo "CMake failed!" && cat CMakeCache.txt 2>/dev/null | head -50 && exit 1) && \
     echo "" && \
     echo "=== Compiling ===" && \
-    cmake --build . --target llvm-obfuscator -j$(nproc) || (echo "Build failed!" && exit 1) && \
+    (cmake --build . --target llvm-obfuscator -j$(nproc) 2>&1 || ( \
+        echo "" && \
+        echo "=== BUILD FAILED - Showing full error output ===" && \
+        echo "Retrying with single thread to see all errors:" && \
+        cmake --build . --target llvm-obfuscator -j1 2>&1 && \
+        exit 1 \
+    )) && \
     echo "" && \
     if [ -f bin/llvm-obfuscator ]; then \
         echo "=== Build successful! ===" && \
