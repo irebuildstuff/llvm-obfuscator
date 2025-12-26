@@ -364,6 +364,7 @@ namespace CLI {
         
     private:
         int showWindows() {
+#ifdef _WIN32
             while (true) {
                 system("cls");
                 color.println("╔════════════════════════════════════════════════════════════════════╗", BLUE);
@@ -1332,7 +1333,7 @@ int cleanInteractiveMode() {
                     }
                     
                     int choice = getCleanInputInt("Select file number", 1, 1, sourceFiles.size());
-                    if (choice < 1 || choice > sourceFiles.size()) {
+                    if (choice < 1 || static_cast<size_t>(choice) > sourceFiles.size()) {
                         printCleanErrorMessage("Invalid selection!");
                         pauseForUser();
                         continue;
@@ -1350,7 +1351,7 @@ int cleanInteractiveMode() {
                     }
                     
                     int choice = getCleanInputInt("Select file number", 1, 1, llFiles.size());
-                    if (choice < 1 || choice > llFiles.size()) {
+                    if (choice < 1 || static_cast<size_t>(choice) > llFiles.size()) {
                         printCleanErrorMessage("Invalid selection!");
                         pauseForUser();
                         continue;
@@ -1841,7 +1842,7 @@ int main(int argc, char **argv) {
     
     // Set target triple if specified
     if (!TargetTriple.empty()) {
-        M->setTargetTriple(Triple(TargetTriple));
+        M->setTargetTriple(TargetTriple);
         color.println(CLI::ARROW + " Set target triple to: " + TargetTriple, CLI::CYAN);
     }
     
