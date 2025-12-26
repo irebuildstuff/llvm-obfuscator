@@ -9,6 +9,7 @@ import ProgressRing from '@/components/ProgressRing'
 import StatCard from '@/components/StatCard'
 import Logo from '@/components/Logo'
 import ScrollReveal from '@/components/ScrollReveal'
+import CompilationInstructions from '@/components/CompilationInstructions'
 
 interface JobStatus {
   status: 'processing' | 'completed' | 'failed'
