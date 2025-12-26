@@ -126,9 +126,10 @@ async function runObfuscationPipeline(jobId, inputFilePath, originalFilename, co
 
     await updateJob(jobId, { 
       obfuscatedIrPath,
+      obfuscatedIrFilename,
       reportPath,
-      progress: 60,
-      message: 'Verifying obfuscated IR...' 
+      progress: 80,
+      message: 'Parsing obfuscation report...' 
     });
 
     // Step 2.5: Verify IR is valid (optional, but helps catch issues early)

@@ -15,6 +15,7 @@ interface JobStatus {
   progress: number
   message: string
   obfuscatedIrPath?: string
+  obfuscatedIrFilename?: string
   report?: {
     raw: string
     parsed: any
@@ -251,7 +252,7 @@ export default function ResultsPage() {
 
                     {/* Compilation Instructions */}
                     <CompilationInstructions 
-                      filename={status.obfuscatedIrPath?.split(/[/\\]/).pop() || 'obfuscated.ll'}
+                      filename={status.obfuscatedIrFilename || status.obfuscatedIrPath?.split(/[/\\]/).pop() || 'obfuscated.ll'}
                     />
                   </div>
                 )}
