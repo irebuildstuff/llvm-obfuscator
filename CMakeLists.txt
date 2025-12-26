@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(LLVMObfuscator VERSION 1.0.0 LANGUAGES CXX)
+project(LLVMObfuscator VERSION 1.0.0 LANGUAGES C CXX)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -215,14 +215,16 @@ install(EXPORT LLVMObfuscatorTargets
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LLVMObfuscator
 )
 
-# Create config file
+# Create config file (optional)
 include(CMakePackageConfigHelpers)
 
-configure_package_config_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/LLVMObfuscatorConfig.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/LLVMObfuscatorConfig.cmake
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LLVMObfuscator
-)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/cmake/LLVMObfuscatorConfig.cmake.in)
+    configure_package_config_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/LLVMObfuscatorConfig.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/LLVMObfuscatorConfig.cmake
+        INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LLVMObfuscator
+    )
+endif()
 
 write_basic_package_version_file(
     ${CMAKE_CURRENT_BINARY_DIR}/LLVMObfuscatorConfigVersion.cmake
@@ -236,22 +238,24 @@ install(FILES
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LLVMObfuscator
 )
 
-# ===== CPack configuration =====
-set(CPACK_PACKAGE_NAME ${PROJECT_NAME})
-set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
-set(CPACK_PACKAGE_VENDOR "LLVMObfuscator")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "LLVM-based code obfuscation tool")
-set(CPACK_PACKAGE_INSTALL_DIRECTORY ${PROJECT_NAME})
-set(CPACK_RESOURCE_FILE_LICENSE ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE)
-set(CPACK_RESOURCE_FILE_README ${CMAKE_CURRENT_SOURCE_DIR}/README.md)
+# ===== CPack configuration (optional) =====
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/README.md)
+    set(CPACK_PACKAGE_NAME ${PROJECT_NAME})
+    set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+    set(CPACK_PACKAGE_VENDOR "LLVMObfuscator")
+    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "LLVM-based code obfuscation tool")
+    set(CPACK_PACKAGE_INSTALL_DIRECTORY ${PROJECT_NAME})
+    set(CPACK_RESOURCE_FILE_LICENSE ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE)
+    set(CPACK_RESOURCE_FILE_README ${CMAKE_CURRENT_SOURCE_DIR}/README.md)
 
-if(WIN32)
-    set(CPACK_GENERATOR "ZIP;NSIS")
-elseif(UNIX)
-    set(CPACK_GENERATOR "TGZ;DEB;RPM")
+    if(WIN32)
+        set(CPACK_GENERATOR "ZIP;NSIS")
+    elseif(UNIX)
+        set(CPACK_GENERATOR "TGZ;DEB;RPM")
+    endif()
+
+    include(CPack)
 endif()
-
-include(CPack)
 
 # ===== Summary =====
 message(STATUS "")

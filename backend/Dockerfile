@@ -25,6 +25,10 @@ COPY include ./include
 COPY src/ObfuscationPass.cpp ./src/
 COPY tools/llvm-obfuscator.cpp ./tools/
 COPY CMakeLists.txt ./
+# Copy optional files if they exist (for CPack)
+COPY cmake/ ./cmake/ 2>/dev/null || true
+COPY LICENSE ./ 2>/dev/null || true
+COPY README.md ./ 2>/dev/null || true
 
 # Diagnostic: Check system and LLVM
 RUN echo "=== System Info ===" && \
