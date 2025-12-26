@@ -1391,7 +1391,7 @@ static RegisterPass<ObfuscationPass> X("obfuscate", "LLVM Code Obfuscation Pass"
 // Wrapper class for new pass manager
 class ObfuscationPassWrapper : public PassInfoMixin<ObfuscationPassWrapper> {
 public:
-    PreservedAnalyses run(Module &M, ModuleAnalysisManager &AM) {
+    PreservedAnalyses run(Module &M, [[maybe_unused]] ModuleAnalysisManager &AM) {
         ObfuscationPass OP;
         bool Changed = OP.runOnModule(M);
         return Changed ? PreservedAnalyses::none() : PreservedAnalyses::all();
@@ -3532,7 +3532,7 @@ CriticalityLevel ObfuscationPass::determineCriticality(Function &F) {
     
     // Functions with many callers are likely utilities = MINIMAL
     int callCount = 0;
-    for (User */*U*/ : F.users()) {
+    for ([[maybe_unused]] User *U : F.users()) {
         callCount++;
         if (callCount > 10) {
             return CriticalityLevel::MINIMAL;
