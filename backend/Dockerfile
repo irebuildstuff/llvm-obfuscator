@@ -26,56 +26,62 @@ COPY src/ObfuscationPass.cpp ./src/
 COPY tools/llvm-obfuscator.cpp ./tools/
 COPY CMakeLists.txt ./
 
-# Find LLVM and build obfuscator
+# Diagnostic: Check system and LLVM
 RUN echo "=== System Info ===" && \
-    lsb_release -a 2>/dev/null || cat /etc/os-release && \
+    cat /etc/os-release && \
     echo "" && \
-    echo "=== Checking LLVM Installation ===" && \
-    dpkg -l | grep llvm || echo "No LLVM packages found" && \
+    echo "=== LLVM Packages ===" && \
+    dpkg -l | grep -i llvm && \
     echo "" && \
     echo "=== Finding LLVM Files ===" && \
-    find /usr -name "LLVMConfig.cmake" 2>/dev/null | head -10 || echo "LLVMConfig.cmake not found" && \
-    find /usr/lib -type d -name "llvm*" 2>/dev/null | head -10 || echo "No LLVM directories found" && \
-    echo "" && \
-    LLVM_CMAKE=$(find /usr -name "LLVMConfig.cmake" 2>/dev/null | head -1) && \
+    find /usr -name "LLVMConfig.cmake" 2>/dev/null && \
+    find /usr/lib -type d -name "llvm*" 2>/dev/null | head -10
+
+# Find LLVM CMake config
+RUN LLVM_CMAKE=$(find /usr -name "LLVMConfig.cmake" 2>/dev/null | head -1) && \
     if [ -n "$LLVM_CMAKE" ]; then \
         LLVM_DIR=$(dirname "$LLVM_CMAKE") && \
-        echo "Found LLVM CMake config at: $LLVM_DIR" && \
-        CMAKE_LLVM_ARG="-DLLVM_DIR=$LLVM_DIR"; \
+        echo "Found LLVM at: $LLVM_DIR" && \
+        echo "$LLVM_DIR" > /tmp/llvm_dir.txt; \
     else \
-        echo "LLVMConfig.cmake not found, checking common paths..." && \
+        echo "LLVMConfig.cmake not found, trying common paths..." && \
         for path in /usr/lib/llvm-*/lib/cmake/llvm /usr/lib/llvm*/lib/cmake/llvm; do \
             if [ -d "$path" ] 2>/dev/null; then \
-                LLVM_DIR="$path" && \
-                CMAKE_LLVM_ARG="-DLLVM_DIR=$LLVM_DIR" && \
-                echo "Using LLVM directory: $LLVM_DIR" && \
+                echo "Using: $path" && \
+                echo "$path" > /tmp/llvm_dir.txt && \
                 break; \
             fi; \
         done; \
-        if [ -z "$CMAKE_LLVM_ARG" ]; then \
-            echo "WARNING: Could not find LLVM CMake config, trying without explicit path"; \
-            CMAKE_LLVM_ARG=""; \
-        fi; \
     fi && \
-    echo "" && \
-    echo "=== Building obfuscator ===" && \
-    mkdir -p build && cd build && \
-    echo "Running cmake with args: -DCMAKE_BUILD_TYPE=Release -DLLVM_OBFUSCATOR_USE_SYSTEM_LLVM=ON $CMAKE_LLVM_ARG" && \
+    if [ ! -f /tmp/llvm_dir.txt ]; then \
+        echo "WARNING: No LLVM found, will try without explicit path" && \
+        echo "" > /tmp/llvm_dir.txt; \
+    fi
+
+# Configure CMake
+RUN mkdir -p build && cd build && \
+    LLVM_DIR=$(cat /tmp/llvm_dir.txt) && \
+    if [ -n "$LLVM_DIR" ]; then \
+        CMAKE_ARGS="-DLLVM_DIR=$LLVM_DIR"; \
+    else \
+        CMAKE_ARGS=""; \
+    fi && \
+    echo "Running: cmake .. -DCMAKE_BUILD_TYPE=Release -DLLVM_OBFUSCATOR_USE_SYSTEM_LLVM=ON $CMAKE_ARGS" && \
     cmake .. \
         -DCMAKE_BUILD_TYPE=Release \
         -DLLVM_OBFUSCATOR_USE_SYSTEM_LLVM=ON \
-        $CMAKE_LLVM_ARG \
-        -DCMAKE_VERBOSE_MAKEFILE=ON || (echo "CMake failed!" && cat CMakeCache.txt 2>/dev/null | head -50 && exit 1) && \
-    echo "" && \
+        $CMAKE_ARGS \
+        -DCMAKE_VERBOSE_MAKEFILE=ON
+
+# Build obfuscator
+RUN cd build && \
     echo "=== Compiling ===" && \
-    (cmake --build . --target llvm-obfuscator -j$(nproc) 2>&1 || ( \
-        echo "" && \
-        echo "=== BUILD FAILED - Showing full error output ===" && \
-        echo "Retrying with single thread to see all errors:" && \
-        cmake --build . --target llvm-obfuscator -j1 2>&1 && \
-        exit 1 \
-    )) && \
-    echo "" && \
+    cmake --build . --target llvm-obfuscator -j$(nproc) || \
+    (echo "=== Parallel build failed, retrying single-threaded ===" && \
+     cmake --build . --target llvm-obfuscator -j1)
+
+# Verify and copy binary
+RUN cd build && \
     if [ -f bin/llvm-obfuscator ]; then \
         echo "=== Build successful! ===" && \
         cp bin/llvm-obfuscator /tmp/llvm-obfuscator && \
@@ -84,14 +90,10 @@ RUN echo "=== System Info ===" && \
         file /tmp/llvm-obfuscator; \
     else \
         echo "=== ERROR: Binary not found ===" && \
-        echo "Contents of build/bin:" && \
-        ls -la bin/ 2>&1 || echo "bin directory doesn't exist" && \
-        echo "" && \
-        echo "Contents of build directory:" && \
-        ls -la 2>&1 | head -30 && \
-        echo "" && \
-        echo "CMakeCache.txt (first 100 lines):" && \
-        cat CMakeCache.txt 2>/dev/null | head -100 || echo "CMakeCache.txt not found" && \
+        echo "Build directory contents:" && \
+        find . -name "*.o" -o -name "*.a" -o -name "*obfuscator*" | head -20 && \
+        echo "CMake error log:" && \
+        cat CMakeFiles/CMakeError.log 2>/dev/null | tail -50 || echo "No error log" && \
         exit 1; \
     fi
 
