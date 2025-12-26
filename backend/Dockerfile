@@ -2,14 +2,17 @@
 # This should be built from the project root
 FROM node:20-slim AS base
 
-# Install system dependencies including LLVM/Clang
+# Install system dependencies including LLVM/Clang with dev packages
 RUN apt-get update && apt-get install -y \
     clang \
     llvm \
+    llvm-dev \
+    libllvm-dev \
     build-essential \
     cmake \
     ninja-build \
     git \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # Build stage for obfuscator
@@ -22,11 +25,34 @@ COPY src/ObfuscationPass.cpp ./src/
 COPY tools/llvm-obfuscator.cpp ./tools/
 COPY CMakeLists.txt ./
 
-# Build obfuscator
-RUN mkdir -p build && cd build && \
-    cmake .. -DCMAKE_BUILD_TYPE=Release && \
-    cmake --build . --target llvm-obfuscator && \
-    cp bin/llvm-obfuscator /tmp/llvm-obfuscator
+# Find LLVM CMake config and build obfuscator
+RUN set -e && \
+    # Try to find LLVM CMake config
+    LLVM_CMAKE=$(find /usr -name "LLVMConfig.cmake" 2>/dev/null | head -1) && \
+    if [ -z "$LLVM_CMAKE" ]; then \
+        echo "Warning: LLVMConfig.cmake not found, trying default paths"; \
+        LLVM_DIR="/usr/lib/llvm-*/lib/cmake/llvm" || true; \
+    else \
+        LLVM_DIR=$(dirname "$LLVM_CMAKE"); \
+        echo "Found LLVM at: $LLVM_DIR"; \
+    fi && \
+    # Build obfuscator
+    mkdir -p build && cd build && \
+    cmake .. \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DLLVM_OBFUSCATOR_USE_SYSTEM_LLVM=ON \
+        ${LLVM_DIR:+-DLLVM_DIR="$LLVM_DIR"} \
+        -DCMAKE_VERBOSE_MAKEFILE=ON && \
+    cmake --build . --target llvm-obfuscator -j$(nproc) && \
+    if [ -f bin/llvm-obfuscator ]; then \
+        cp bin/llvm-obfuscator /tmp/llvm-obfuscator && \
+        chmod +x /tmp/llvm-obfuscator && \
+        echo "Build successful!"; \
+    else \
+        echo "Error: llvm-obfuscator binary not found!"; \
+        ls -la bin/ || true; \
+        exit 1; \
+    fi
 
 # Backend application stage
 FROM base AS backend
