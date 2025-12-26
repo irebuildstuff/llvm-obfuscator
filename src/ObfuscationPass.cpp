@@ -384,7 +384,7 @@ bool ObfuscationPass::obfuscateControlFlow(Function &F) {
     // Check if already obfuscated (has obf_ prefix blocks)
     bool alreadyObfuscated = false;
     for (BasicBlock &BB : F) {
-        if (BB.getName().starts_with("obf_")) {
+        if (BB.getName().startswith("obf_")) {
             alreadyObfuscated = true;
             break;
         }
@@ -397,14 +397,14 @@ bool ObfuscationPass::obfuscateControlFlow(Function &F) {
         // Skip blocks that are too small or already have complex control flow
         if (BB.size() < 3) continue;
         // Skip blocks that are already obfuscation artifacts
-        if (BB.getName().starts_with("obf_") || BB.getName().starts_with("fake_")) continue;
+        if (BB.getName().startswith("obf_") || BB.getName().startswith("fake_")) continue;
         blocksToProcess.push_back(&BB);
     }
     
     // AGGRESSIVE: Process more blocks to create complex control flow
     // For main and critical functions, be very aggressive
     int maxBlocksToObfuscate = blocksToProcess.size(); // Process ALL blocks
-    if (F.getName() == "main" || F.getName().starts_with("_main") || shouldObfuscateFunction(F)) {
+    if (F.getName() == "main" || F.getName().startswith("_main") || shouldObfuscateFunction(F)) {
         maxBlocksToObfuscate = blocksToProcess.size() * 2; // Even more aggressive for main
     }
     
@@ -491,11 +491,11 @@ bool ObfuscationPass::obfuscateControlFlow(Function &F) {
     // Additional pass: Add nested branches to create more complexity
     // This creates a maze-like structure
     // AGGRESSIVE: Allow more blocks for main function
-    int maxBlocks = (F.getName() == "main" || F.getName().starts_with("_main")) ? 50 : 20;
+    int maxBlocks = (F.getName() == "main" || F.getName().startswith("_main")) ? 50 : 20;
     if (modified && F.size() < maxBlocks) {
         std::vector<BasicBlock*> newBlocksToProcess;
         for (BasicBlock &BB : F) {
-            if (BB.size() >= 3 && !BB.getName().starts_with("obf_") && !BB.getName().starts_with("fake_")) {
+            if (BB.size() >= 3 && !BB.getName().startswith("obf_") && !BB.getName().startswith("fake_")) {
                 if (BranchInst *BI = dyn_cast<BranchInst>(BB.getTerminator())) {
                     if (BI->isUnconditional()) {
                         newBlocksToProcess.push_back(&BB);
@@ -506,7 +506,7 @@ bool ObfuscationPass::obfuscateControlFlow(Function &F) {
         
         // Add one more level of nesting to create maze structure
         // AGGRESSIVE: More nested branches for main
-        int maxNested = (F.getName() == "main" || F.getName().starts_with("_main")) ? 10 : 3;
+        int maxNested = (F.getName() == "main" || F.getName().startswith("_main")) ? 10 : 3;
         int nestedCount = 0;
         for (BasicBlock *BB : newBlocksToProcess) {
             if (nestedCount >= maxNested) break;
@@ -697,7 +697,7 @@ bool ObfuscationPass::insertFakeLoops(Function &F) {
         if (&BB == &F.getEntryBlock()) continue;
         
         // Skip blocks that are already fake loops
-        if (BB.getName().starts_with("fake_")) continue;
+        if (BB.getName().startswith("fake_")) continue;
         
         // Check terminator - must have at least one successor
         Instruction *Term = BB.getTerminator();
@@ -2259,7 +2259,7 @@ bool ObfuscationPass::applyMBA(Function &F) {
     // Skip functions that have been flattened (they may have broken SSA)
     bool isFlattened = false;
     for (BasicBlock &BB : F) {
-        if (BB.getName().starts_with("cff_")) {
+        if (BB.getName().startswith("cff_")) {
             isFlattened = true;
             break;
         }
@@ -2731,11 +2731,11 @@ bool ObfuscationPass::insertAntiDebug(Module &M) {
     // Insert checks in main and other critical functions
     for (Function &F : M) {
         if (F.isDeclaration() || &F == CheckFunc) continue;
-        if (F.getName() == "main" || F.getName().starts_with("_main") || 
+        if (F.getName() == "main" || F.getName().startswith("_main") || 
             shouldObfuscateFunction(F)) {
             
             BasicBlock &Entry = F.getEntryBlock();
-            Instruction *SplitPt = &*Entry.getFirstNonPHIOrDbgOrAlloca();
+            Instruction *SplitPt = &*Entry.getFirstNonPHIOrDbg();
             if (!SplitPt) continue;
             
             BasicBlock *OrigCont = Entry.splitBasicBlock(SplitPt, "orig_entry.cont");
@@ -2820,7 +2820,7 @@ bool ObfuscationPass::insertAntiDebug(Module &M) {
         if (F.isDeclaration() || &F == CheckFunc) continue;
         if (F.getName() == "main") {
             BasicBlock &Entry = F.getEntryBlock();
-            Instruction *SplitPt = &*Entry.getFirstNonPHIOrDbgOrAlloca();
+            Instruction *SplitPt = &*Entry.getFirstNonPHIOrDbg();
             if (!SplitPt) continue;
             BasicBlock *OrigCont = Entry.splitBasicBlock(SplitPt, "orig_entry.cont");
             Entry.getTerminator()->eraseFromParent();
@@ -3329,7 +3329,7 @@ bool ObfuscationPass::virtualizeFunction(Function &F) {
 
 /// Create a virtual machine interpreter function (placeholder for future full implementation)
 /// Currently unused as we use simpler XOR-based obfuscation instead
-Function* ObfuscationPass::createVirtualMachine(Module &M) {
+Function* ObfuscationPass::createVirtualMachine(Module &/*M*/) {
     // This function is kept for API compatibility but returns nullptr
     // A full VM implementation would require:
     // 1. Complete ISA with all instruction types
@@ -3530,7 +3530,7 @@ CriticalityLevel ObfuscationPass::determineCriticality(Function &F) {
     
     // Functions with many callers are likely utilities = MINIMAL
     int callCount = 0;
-    for (User *U : F.users()) {
+    for (User */*U*/ : F.users()) {
         callCount++;
         if (callCount > 10) {
             return CriticalityLevel::MINIMAL;
@@ -3552,7 +3552,7 @@ FunctionAnalysis ObfuscationPass::analyzeFunction(Function &F) {
     
     // Count callers
     analysis.callFrequency = 0;
-    for (User *U : F.users()) {
+    for (User */*U*/ : F.users()) {
         analysis.callFrequency++;
     }
     
@@ -3977,7 +3977,7 @@ void ObfuscationPass::generatePolymorphicVariant(Function &F, int variant) {
         
         // Create switch to select variant
         BasicBlock *DefaultBB = BasicBlock::Create(Ctx, "default", Dispatcher);
-        SwitchInst *Switch = DB.CreateSwitch(VariantIdx, DefaultBB, config.polymorphicVariants);
+        /*SwitchInst *Switch =*/ DB.CreateSwitch(VariantIdx, DefaultBB, config.polymorphicVariants);
         
         // Forward arguments
         std::vector<Value*> Args;
@@ -4037,7 +4037,7 @@ bool ObfuscationPass::insertAntiAnalysis(Module &M) {
         if (F.isDeclaration() || &F == AnalysisCheck) continue;
         if (F.getName() == "main") {
             BasicBlock &Entry = F.getEntryBlock();
-            Instruction *SplitPt = &*Entry.getFirstNonPHIOrDbgOrAlloca();
+            Instruction *SplitPt = &*Entry.getFirstNonPHIOrDbg();
             if (!SplitPt) continue;
             BasicBlock *OrigCont = Entry.splitBasicBlock(SplitPt, "orig_entry.cont");
             Entry.getTerminator()->eraseFromParent();
