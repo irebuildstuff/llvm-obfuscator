@@ -639,7 +639,8 @@ bool ObfuscationPass::insertBogusCode(Function &F) {
         int bogusCount = (BB.size() * config.bogusCodePercentage) / 200;  // Half the percentage
         if (bogusCount == 0 && BB.size() > 5) bogusCount = 1;  // At least one in large blocks
         
-        IRBuilder<> Builder(&BB, InsertPoint);
+        // Use the FirstNonPHI we already found above
+        IRBuilder<> Builder(FirstNonPHI);
         
         for (int i = 0; i < bogusCount; i++) {
             // Optimized: Use minimal instructions with opaque predicate for better security/size ratio
