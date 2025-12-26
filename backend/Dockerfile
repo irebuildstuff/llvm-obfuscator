@@ -107,22 +107,22 @@ RUN cd build && \
     (echo "=== Parallel build failed, retrying single-threaded ===" && \
      cmake --build . --target llvm-obfuscator -j1)
 
-# Verify and copy binary
-RUN cd build && \
-    if [ -f bin/llvm-obfuscator ]; then \
-        echo "=== Build successful! ===" && \
-        cp bin/llvm-obfuscator /tmp/llvm-obfuscator && \
-        chmod +x /tmp/llvm-obfuscator && \
-        ls -lh /tmp/llvm-obfuscator && \
-        file /tmp/llvm-obfuscator; \
-    else \
-        echo "=== ERROR: Binary not found ===" && \
-        echo "Build directory contents:" && \
-        find . -name "*.o" -o -name "*.a" -o -name "*obfuscator*" | head -20 && \
-        echo "CMake error log:" && \
-        cat CMakeFiles/CMakeError.log 2>/dev/null | tail -50 || echo "No error log" && \
-        exit 1; \
-    fi
+    # Verify and copy binary
+    RUN cd build && \
+        if [ -f bin/llvm-obfuscator ]; then \
+            echo "=== Build successful! ===" && \
+            cp bin/llvm-obfuscator /tmp/llvm-obfuscator && \
+            chmod +x /tmp/llvm-obfuscator && \
+            ls -lh /tmp/llvm-obfuscator && \
+            echo "Binary size: $(du -h /tmp/llvm-obfuscator | cut -f1)"; \
+        else \
+            echo "=== ERROR: Binary not found ===" && \
+            echo "Build directory contents:" && \
+            find . -name "*.o" -o -name "*.a" -o -name "*obfuscator*" | head -20 && \
+            echo "CMake error log:" && \
+            cat CMakeFiles/CMakeError.log 2>/dev/null | tail -50 || echo "No error log" && \
+            exit 1; \
+        fi
 
 # Backend application stage
 FROM base AS backend
