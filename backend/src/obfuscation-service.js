@@ -2,7 +2,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { join, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync } from 'fs';
 import { createJob, updateJob } from './job-manager.js';
 import { parseReport } from './report-parser.js';
 
@@ -225,9 +225,62 @@ async function stripExceptionHandling(irPath, jobId) {
 }
 
 /**
+ * Check if source code contains Windows-specific headers
+ */
+function detectWindowsHeaders(sourcePath) {
+  try {
+    const content = readFileSync(sourcePath, 'utf8');
+    const windowsHeaders = [
+      /#include\s*[<"]Windows\.h[>"]/i,
+      /#include\s*[<"]windows\.h[>"]/i,
+      /#include\s*[<"]winbase\.h[>"]/i,
+      /#include\s*[<"]winuser\.h[>"]/i,
+      /#include\s*[<"]winsock2\.h[>"]/i,
+      /#include\s*[<"]ws2tcpip\.h[>"]/i,
+      /#include\s*[<"]winnt\.h[>"]/i,
+      /#include\s*[<"]process\.h[>"]/i,
+      /#include\s*[<"]io\.h[>"]/i,
+      /#include\s*[<"]direct\.h[>"]/i,
+    ];
+    
+    for (const pattern of windowsHeaders) {
+      if (pattern.test(content)) {
+        return true;
+      }
+    }
+    return false;
+  } catch (err) {
+    // If we can't read the file, continue anyway
+    return false;
+  }
+}
+
+/**
  * Compile C/C++ source to LLVM IR
  */
 async function compileToLLVMIR(sourcePath, outputPath) {
+  // Check for Windows-specific headers if running on Linux
+  if (process.platform !== 'win32') {
+    if (detectWindowsHeaders(sourcePath)) {
+      throw new Error(
+        'Windows-specific headers detected (e.g., Windows.h).\n' +
+        'The obfuscation service runs on Linux and cannot compile Windows-specific code.\n\n' +
+        'Solutions:\n' +
+        '1. Remove Windows-specific includes and use cross-platform alternatives:\n' +
+        '   - Replace Windows.h with standard C++ libraries\n' +
+        '   - Use std::thread instead of Windows threading APIs\n' +
+        '   - Use std::filesystem instead of Windows file APIs\n' +
+        '2. Use the CLI tool locally on Windows for Windows-specific code\n' +
+        '3. Compile to LLVM IR locally first, then upload the .ll file\n\n' +
+        'Common replacements:\n' +
+        '  - Windows.h → Remove or use cross-platform libraries\n' +
+        '  - CreateThread() → std::thread\n' +
+        '  - GetCurrentProcessId() → std::this_thread::get_id()\n' +
+        '  - MessageBox() → Use a cross-platform GUI library'
+      );
+    }
+  }
+
   // Use the found clang path or try to find it again
   let clangPath = CLANG_PATH;
   if (!clangPath || clangPath === 'clang' || clangPath === 'clang.exe') {
@@ -260,9 +313,33 @@ async function compileToLLVMIR(sourcePath, outputPath) {
   try {
     const { stdout, stderr } = await execAsync(command);
     if (stderr && !stderr.includes('warning') && !stderr.includes('note')) {
+      // Check for Windows header errors and provide better message
+      if (stderr.includes('Windows.h') || stderr.includes('windows.h') || stderr.includes('file not found')) {
+        throw new Error(
+          'Windows-specific headers detected. The obfuscation service runs on Linux.\n\n' +
+          'Solutions:\n' +
+          '1. Remove Windows-specific includes (Windows.h, etc.)\n' +
+          '2. Use cross-platform C++ standard library instead\n' +
+          '3. Use the CLI tool locally on Windows\n' +
+          '4. Compile to LLVM IR locally first, then upload the .ll file\n\n' +
+          `Original error: ${stderr}`
+        );
+      }
       throw new Error(`Clang compilation error: ${stderr}`);
     }
   } catch (error) {
+    // Enhance error message for Windows header issues
+    if (error.message.includes('Windows.h') || error.message.includes('file not found')) {
+      throw new Error(
+        'Windows-specific headers detected. The obfuscation service runs on Linux.\n\n' +
+        'Solutions:\n' +
+        '1. Remove Windows-specific includes (Windows.h, etc.)\n' +
+        '2. Use cross-platform C++ standard library instead\n' +
+        '3. Use the CLI tool locally on Windows\n' +
+        '4. Compile to LLVM IR locally first, then upload the .ll file\n\n' +
+        `Original error: ${error.message}`
+      );
+    }
     throw new Error(`Failed to compile to LLVM IR: ${error.message}`);
   }
 }
