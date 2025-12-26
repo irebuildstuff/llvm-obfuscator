@@ -23,22 +23,41 @@ function findClang() {
     return process.env.CLANG_PATH;
   }
 
-  // Common Windows paths
-  const possiblePaths = [
-    'C:\\Program Files\\LLVM\\bin\\clang.exe',
-    'C:\\Program Files (x86)\\LLVM\\bin\\clang.exe',
-    'C:\\LLVM\\bin\\clang.exe',
-    'clang.exe',
-    'clang'
-  ];
+  const isWindows = process.platform === 'win32';
+  
+  if (isWindows) {
+    // Common Windows paths
+    const possiblePaths = [
+      'C:\\Program Files\\LLVM\\bin\\clang.exe',
+      'C:\\Program Files (x86)\\LLVM\\bin\\clang.exe',
+      'C:\\LLVM\\bin\\clang.exe',
+      'clang.exe',
+      'clang'
+    ];
 
-  for (const path of possiblePaths) {
-    if (path === 'clang.exe' || path === 'clang') {
-      // If it's just 'clang' or 'clang.exe', assume it's in PATH
-      // The actual execution will fail if it's not, and we'll handle that
-      return path;
-    } else if (existsSync(path)) {
-      return path;
+    for (const path of possiblePaths) {
+      if (path === 'clang.exe' || path === 'clang') {
+        // If it's just 'clang' or 'clang.exe', assume it's in PATH
+        return path;
+      } else if (existsSync(path)) {
+        return path;
+      }
+    }
+  } else {
+    // Linux/Unix paths
+    const possiblePaths = [
+      '/usr/bin/clang',
+      '/usr/local/bin/clang',
+      'clang'  // Try PATH last
+    ];
+
+    for (const path of possiblePaths) {
+      if (path === 'clang') {
+        // Assume it's in PATH
+        return path;
+      } else if (existsSync(path)) {
+        return path;
+      }
     }
   }
 
@@ -55,8 +74,13 @@ if (CLANG_PATH && CLANG_PATH !== 'clang' && CLANG_PATH !== 'clang.exe') {
     console.warn('Warning: Clang path does not exist:', CLANG_PATH);
   }
 } else {
-  console.warn('Warning: Clang not found in common paths. Using:', CLANG_PATH);
-  console.warn('If obfuscation fails, set CLANG_PATH environment variable.');
+  // On Linux, 'clang' in PATH is normal and expected
+  if (process.platform === 'win32') {
+    console.warn('Warning: Clang not found in common Windows paths. Using:', CLANG_PATH);
+    console.warn('If obfuscation fails, set CLANG_PATH environment variable.');
+  } else {
+    console.log('Using clang from system PATH (expected on Linux)');
+  }
 }
 
 // Ensure directories exist
