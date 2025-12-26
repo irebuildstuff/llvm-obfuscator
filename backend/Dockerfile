@@ -25,11 +25,17 @@ COPY include ./include
 COPY src/ObfuscationPass.cpp ./src/
 COPY tools/llvm-obfuscator.cpp ./tools/
 COPY CMakeLists.txt ./
-# Copy optional files if they exist (for CPack - create dummy if missing)
+# Create dummy optional files for CPack (if they don't exist in repo)
 RUN mkdir -p cmake && \
-    (test -f ../cmake/LLVMObfuscatorConfig.cmake.in && cp ../cmake/LLVMObfuscatorConfig.cmake.in ./cmake/ || echo "# Dummy config" > ./cmake/LLVMObfuscatorConfig.cmake.in) && \
-    (test -f ../LICENSE && cp ../LICENSE ./ || echo "No license" > ./LICENSE) && \
-    (test -f ../README.md && cp ../README.md ./ || echo "# LLVM Obfuscator" > ./README.md) || true
+    if [ ! -f cmake/LLVMObfuscatorConfig.cmake.in ]; then \
+        echo "# Dummy config file" > cmake/LLVMObfuscatorConfig.cmake.in; \
+    fi && \
+    if [ ! -f LICENSE ]; then \
+        echo "No license file" > LICENSE; \
+    fi && \
+    if [ ! -f README.md ]; then \
+        echo "# LLVM Obfuscator" > README.md; \
+    fi
 
 # Diagnostic: Check system and LLVM
 RUN echo "=== System Info ===" && \
