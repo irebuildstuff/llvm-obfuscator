@@ -80,7 +80,7 @@ export default function CompilationInstructions({ filename, className = '' }: Co
                 <div className="mb-1 text-vt-text-tertiary"># Navigate to the directory with your .ll file</div>
                 <div className="mb-1">cd /path/to/your/file</div>
                 <div className="mb-1 text-vt-text-tertiary"># Compile the obfuscated IR</div>
-                <div className="mb-1">clang "{filename}" -o "{baseFilename}" -fno-exceptions -lstdc++</div>
+                <div className="mb-1">clang &quot;{filename}&quot; -o &quot;{baseFilename}&quot; -fno-exceptions -lstdc++</div>
                 <div className="text-vt-text-tertiary"># Run the executable</div>
                 <div>./{baseFilename}</div>
               </div>
@@ -98,7 +98,7 @@ export default function CompilationInstructions({ filename, className = '' }: Co
               <p className="font-semibold text-vt-text-primary mb-1">Important Notes:</p>
               <ul className="text-vt-text-secondary space-y-1 list-disc list-inside">
                 <li>Use <code className="bg-vt-bg-primary px-1 rounded text-xs">-fno-exceptions</code> flag to avoid exception handling issues</li>
-                <li>If you encounter linking errors, try: <code className="bg-vt-bg-primary px-1 rounded text-xs">clang "{filename}" -o "{baseFilename}" -fno-exceptions -lstdc++</code></li>
+                <li>If you encounter linking errors, try: <code className="bg-vt-bg-primary px-1 rounded text-xs">clang &quot;{filename}&quot; -o &quot;{baseFilename}&quot; -fno-exceptions -lstdc++</code></li>
                 <li>For C++ code, ensure you have the C++ standard library installed</li>
                 <li>The obfuscated code maintains the same functionality as the original</li>
               </ul>
