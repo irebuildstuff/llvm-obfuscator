@@ -93,9 +93,6 @@ export async function cleanupJob(jobId) {
     if (job.obfuscatedIrPath && existsSync(job.obfuscatedIrPath)) {
       await rm(job.obfuscatedIrPath, { force: true });
     }
-    if (job.executablePath && existsSync(job.executablePath)) {
-      await rm(job.executablePath, { force: true });
-    }
     if (job.reportPath && existsSync(job.reportPath)) {
       await rm(job.reportPath, { force: true });
     }

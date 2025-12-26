@@ -135,19 +135,6 @@ async function runObfuscationPipeline(jobId, inputFilePath, originalFilename, co
     // Note: We skip this if opt is not available, as it's not critical
 
     await updateJob(jobId, { 
-      progress: 65,
-      message: 'Compiling obfuscated IR to executable...' 
-    });
-
-    // Step 3: Compile to executable
-    const executableFilename = basename(originalFilename, getExtension(originalFilename)) + '_obfuscated.exe';
-    const executablePath = join(OUTPUT_DIR, `${jobId}-${executableFilename}`);
-
-    await compileToExecutable(obfuscatedIrPath, executablePath);
-
-    await updateJob(jobId, { 
-      executablePath,
-      executableFilename,
       progress: 80,
       message: 'Parsing obfuscation report...' 
     });
@@ -158,12 +145,14 @@ async function runObfuscationPipeline(jobId, inputFilePath, originalFilename, co
       reportData = await parseReport(reportPath);
     }
 
-    // Step 5: Mark as completed
+    // Step 3: Mark as completed
     await updateJob(jobId, {
       status: 'completed',
       progress: 100,
-      message: 'Obfuscation complete',
-      report: reportData
+      message: 'Obfuscation complete! Download the .ll file and compile it locally.',
+      report: reportData,
+      obfuscatedIrPath,
+      obfuscatedIrFilename
     });
 
     console.log(`Obfuscation completed for job ${jobId}`);

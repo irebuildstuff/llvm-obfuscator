@@ -14,8 +14,6 @@ interface JobStatus {
   status: 'processing' | 'completed' | 'failed'
   progress: number
   message: string
-  executablePath?: string
-  executableFilename?: string
   obfuscatedIrPath?: string
   report?: {
     raw: string
@@ -213,39 +211,48 @@ export default function ResultsPage() {
                   </div>
                 )}
 
-                {status.executablePath && (
-                  <div className="border-2 border-vt-primary/30 rounded-xl bg-gradient-to-br from-vt-primary-subtle via-vt-bg-primary to-vt-bg-secondary p-6 shadow-lg">
-                    <div className="flex items-start gap-5 mb-6">
-                      <div className="w-16 h-16 bg-gradient-to-br from-vt-primary to-vt-primary-dark rounded-xl flex items-center justify-center flex-shrink-0 shadow-md border border-vt-primary/20">
-                        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </div>
-                      <div className="flex-grow min-w-0">
-                        <div className="flex items-center gap-3 mb-2">
-                          <p className="text-xl font-bold text-vt-text-primary">Obfuscated Executable</p>
-                          <span className="px-2.5 py-1 bg-vt-success/20 text-vt-success text-xs font-semibold rounded-full">
-                            Ready
-                          </span>
+                {status.obfuscatedIrPath && (
+                  <div className="space-y-6">
+                    {/* Download .ll File */}
+                    <div className="border-2 border-vt-primary/30 rounded-xl bg-gradient-to-br from-vt-primary-subtle via-vt-bg-primary to-vt-bg-secondary p-6 shadow-lg">
+                      <div className="flex items-start gap-5 mb-6">
+                        <div className="w-16 h-16 bg-gradient-to-br from-vt-primary to-vt-primary-dark rounded-xl flex items-center justify-center flex-shrink-0 shadow-md border border-vt-primary/20">
+                          <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                          </svg>
                         </div>
-                        <p className="text-sm text-vt-text-tertiary font-mono mb-3">
-                          {status.executableFilename || 'obfuscated.exe'}
-                        </p>
-                        <p className="text-sm text-vt-text-secondary">
-                          Your code has been successfully obfuscated and compiled with world-class protection techniques.
-                        </p>
+                        <div className="flex-grow min-w-0">
+                          <div className="flex items-center gap-3 mb-2">
+                            <p className="text-xl font-bold text-vt-text-primary">Obfuscated LLVM IR</p>
+                            <span className="px-2.5 py-1 bg-vt-success/20 text-vt-success text-xs font-semibold rounded-full">
+                              Ready
+                            </span>
+                          </div>
+                          <p className="text-sm text-vt-text-tertiary font-mono mb-3">
+                            {status.obfuscatedIrPath?.split(/[/\\]/).pop() || 'obfuscated.ll'}
+                          </p>
+                          <p className="text-sm text-vt-text-secondary">
+                            Your code has been successfully obfuscated with world-class protection techniques. 
+                            Download the LLVM IR file and compile it locally on your machine.
+                          </p>
+                        </div>
                       </div>
+                      <a
+                        href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/download/${jobId}/ir`}
+                        download={status.obfuscatedIrPath?.split(/[/\\]/).pop() || 'obfuscated.ll'}
+                        className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-vt-primary text-white text-base font-semibold rounded-lg hover:bg-vt-primary-hover transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 active:translate-y-0"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Download LLVM IR (.ll)
+                      </a>
                     </div>
-                    <a
-                      href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/download/${jobId}/executable`}
-                      download={status.executableFilename || 'obfuscated.exe'}
-                      className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-vt-primary text-white text-base font-semibold rounded-lg hover:bg-vt-primary-hover transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 active:translate-y-0"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                      Download Executable
-                    </a>
+
+                    {/* Compilation Instructions */}
+                    <CompilationInstructions 
+                      filename={status.obfuscatedIrPath?.split(/[/\\]/).pop() || 'obfuscated.ll'}
+                    />
                   </div>
                 )}
               </div>

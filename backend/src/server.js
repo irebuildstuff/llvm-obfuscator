@@ -182,11 +182,7 @@ app.get('/api/download/:jobId/:fileType', async (req, res) => {
     let contentType;
     let filename;
 
-    if (fileType === 'executable') {
-      filePath = status.executablePath;
-      contentType = 'application/octet-stream';
-      filename = status.executableFilename || 'obfuscated.exe';
-    } else if (fileType === 'ir') {
+    if (fileType === 'ir') {
       filePath = status.obfuscatedIrPath;
       contentType = 'text/plain';
       filename = filePath ? filePath.split(/[/\\]/).pop() : 'obfuscated.ll';
