@@ -14,7 +14,15 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     libc++-dev \
     libc++abi-dev \
-    && rm -rf /var/lib/apt/lists/*
+    libffi-dev \
+    libncurses5-dev \
+    zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/* && \
+    echo "=== Verifying ZLIB installation ===" && \
+    dpkg -l | grep zlib && \
+    ls -la /usr/include/zlib.h 2>/dev/null || echo "zlib.h not found" && \
+    ls -la /usr/lib/x86_64-linux-gnu/libz.so* 2>/dev/null || echo "libz.so not found" && \
+    pkg-config --exists zlib && echo "ZLIB found via pkg-config" || echo "ZLIB not found via pkg-config"
 
 # Build stage for obfuscator
 FROM base AS obfuscator-builder
