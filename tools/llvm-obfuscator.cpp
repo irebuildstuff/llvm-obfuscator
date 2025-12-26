@@ -6,7 +6,7 @@
 #include "llvm/IRReader/IRReader.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/TargetParser/Triple.h"
+#include "llvm/ADT/Triple.h"
 // Removed unused legacy PassManager headers to improve compatibility
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/Support/FileSystem.h"
