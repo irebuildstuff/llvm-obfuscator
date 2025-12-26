@@ -28,30 +28,44 @@ COPY CMakeLists.txt ./
 
 # Find LLVM CMake config and build obfuscator
 RUN set -e && \
-    # Try to find LLVM CMake config
+    echo "=== Finding LLVM ===" && \
+    find /usr -name "LLVMConfig.cmake" 2>/dev/null | head -5 && \
     LLVM_CMAKE=$(find /usr -name "LLVMConfig.cmake" 2>/dev/null | head -1) && \
-    if [ -z "$LLVM_CMAKE" ]; then \
-        echo "Warning: LLVMConfig.cmake not found, trying default paths"; \
-        LLVM_DIR="/usr/lib/llvm-*/lib/cmake/llvm" || true; \
+    if [ -n "$LLVM_CMAKE" ]; then \
+        LLVM_DIR=$(dirname "$LLVM_CMAKE") && \
+        echo "Found LLVM at: $LLVM_DIR" && \
+        CMAKE_LLVM_ARG="-DLLVM_DIR=$LLVM_DIR"; \
     else \
-        LLVM_DIR=$(dirname "$LLVM_CMAKE"); \
-        echo "Found LLVM at: $LLVM_DIR"; \
+        echo "LLVMConfig.cmake not found, trying common paths..." && \
+        for path in /usr/lib/llvm-*/lib/cmake/llvm /usr/lib/llvm*/lib/cmake/llvm; do \
+            if [ -d "$path" ]; then \
+                LLVM_DIR="$path" && \
+                CMAKE_LLVM_ARG="-DLLVM_DIR=$LLVM_DIR" && \
+                echo "Using LLVM at: $LLVM_DIR" && \
+                break; \
+            fi; \
+        done; \
     fi && \
-    # Build obfuscator
+    echo "=== Building obfuscator ===" && \
     mkdir -p build && cd build && \
     cmake .. \
         -DCMAKE_BUILD_TYPE=Release \
         -DLLVM_OBFUSCATOR_USE_SYSTEM_LLVM=ON \
-        ${LLVM_DIR:+-DLLVM_DIR="$LLVM_DIR"} \
-        -DCMAKE_VERBOSE_MAKEFILE=ON && \
-    cmake --build . --target llvm-obfuscator -j$(nproc) && \
+        $CMAKE_LLVM_ARG \
+        -DCMAKE_VERBOSE_MAKEFILE=ON 2>&1 | head -50 && \
+    echo "=== Compiling ===" && \
+    cmake --build . --target llvm-obfuscator -j$(nproc) 2>&1 | tail -100 && \
     if [ -f bin/llvm-obfuscator ]; then \
+        echo "=== Build successful! ===" && \
         cp bin/llvm-obfuscator /tmp/llvm-obfuscator && \
         chmod +x /tmp/llvm-obfuscator && \
-        echo "Build successful!"; \
+        ls -lh /tmp/llvm-obfuscator; \
     else \
-        echo "Error: llvm-obfuscator binary not found!"; \
-        ls -la bin/ || true; \
+        echo "=== Build failed: binary not found ===" && \
+        echo "Contents of build/bin:" && \
+        ls -la bin/ 2>&1 || echo "bin directory doesn't exist" && \
+        echo "Contents of build:" && \
+        ls -la 2>&1 | head -20 && \
         exit 1; \
     fi
 
