@@ -7,12 +7,13 @@ RUN apt-get update && apt-get install -y \
     clang \
     llvm \
     llvm-dev \
-    libllvm-dev \
     build-essential \
     cmake \
     ninja-build \
     git \
     pkg-config \
+    libc++-dev \
+    libc++abi-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Build stage for obfuscator
