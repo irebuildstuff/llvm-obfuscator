@@ -46,7 +46,7 @@ export default function CompilationInstructions({ filename, className = '' }: Co
                 <div className="mb-1 text-vt-text-tertiary"># Navigate to the directory with your .ll file</div>
                 <div className="mb-1">cd path\to\your\file</div>
                 <div className="mb-1 text-vt-text-tertiary"># Compile the obfuscated IR</div>
-                <div className="mb-1">clang "{filename}" -o "{baseFilename}.exe" -fno-exceptions</div>
+                <div className="mb-1">clang &quot;{filename}&quot; -o &quot;{baseFilename}.exe&quot; -fno-exceptions -lstdc++</div>
                 <div className="text-vt-text-tertiary"># Run the executable</div>
                 <div>.\{baseFilename}.exe</div>
               </div>
